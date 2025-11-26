@@ -19,8 +19,8 @@
                     :class="{ 'menu-active': activeMenu == 'historical' }">
                     历史结果
                 </div>
-                <div @click="navigaJump('article')" class="menu-text"
-                    :class="{ 'menu-active': activeMenu == 'article' }">
+                <div @click="navigaJump('problem')" class="menu-text"
+                    :class="{ 'menu-active': activeMenu == 'problem' }">
                     了解更多
                 </div>
             </div>
@@ -68,6 +68,8 @@ import Home from "./home-page.vue";
 import Plagiarism from "./plagiarism.vue";
 import Historical from "./historical-results.vue";
 import Article from "./blog/index.vue";
+import problem from "./problem.vue";
+
 
 
 import {
@@ -191,6 +193,11 @@ const navigaJump = (event) => {
         case 'article':
             component.value = Article
             activeMenu.value = 'article'
+
+            break;
+        case 'problem':
+            component.value = problem
+            activeMenu.value = 'problem'
 
             break;
         default:
