@@ -31,6 +31,41 @@
                     <div class="sign text-bold-500" @click="loginOpen('register')">注册</div>
                 </div>
             </div>
+            <!-- 手机端汉堡菜单按钮 -->
+            <div class="mobile-menu-btn" @click="toggleMobileMenu">
+                <span class="hamburger-line" :class="{ 'active': mobileMenuOpen }"></span>
+                <span class="hamburger-line" :class="{ 'active': mobileMenuOpen }"></span>
+                <span class="hamburger-line" :class="{ 'active': mobileMenuOpen }"></span>
+            </div>
+        </div>
+        <!-- 手机端侧边栏菜单 -->
+        <div class="mobile-menu-overlay" :class="{ 'active': mobileMenuOpen }" @click="toggleMobileMenu"></div>
+        <div class="mobile-menu" :class="{ 'active': mobileMenuOpen }">
+            <div class="mobile-menu-header">
+                <div class="logo flex align-center">
+                    <img src="/img/logo.png" alt="" class="logo-img">
+                    <div class="logo-text">LOONOOL</div>
+                </div>
+                <div class="close-btn" @click="toggleMobileMenu">×</div>
+            </div>
+            <div class="mobile-menu-content">
+                <div @click="handleMobileMenuClick('home')" class="mobile-menu-item" :class="{ 'menu-active': activeMenu == 'home' }">
+                    首页
+                </div>
+                <div @click="handleMobileMenuClick('AiTool')" class="mobile-menu-item" :class="{ 'menu-active': activeMenu === 'AiTool' }">
+                    检测查重
+                </div>
+                <div @click="handleMobileMenuClick('historical')" class="mobile-menu-item" :class="{ 'menu-active': activeMenu == 'historical' }">
+                    历史结果
+                </div>
+                <div @click="handleMobileMenuClick('problem')" class="mobile-menu-item" :class="{ 'menu-active': activeMenu == 'problem' }">
+                    了解更多
+                </div>
+            </div>
+            <div class="mobile-menu-footer">
+                <div class="mobile-login-btn" @click="handleMobileLogin('login')">登录</div>
+                <div class="mobile-register-btn" @click="handleMobileLogin('register')">注册</div>
+            </div>
         </div>
         <component :is="component"> </component>
     </div>
@@ -84,6 +119,24 @@ import {
 const component = ref(Home);
 
 const activeMenu = ref('home');
+
+// 移动端菜单控制
+const mobileMenuOpen = ref(false);
+const toggleMobileMenu = () => {
+    mobileMenuOpen.value = !mobileMenuOpen.value;
+};
+
+// 移动端菜单点击处理
+const handleMobileMenuClick = (event) => {
+    navigaJump(event);
+    mobileMenuOpen.value = false; // 点击后关闭菜单
+};
+
+// 移动端登录/注册点击处理
+const handleMobileLogin = (type) => {
+    loginOpen(type);
+    mobileMenuOpen.value = false; // 点击后关闭菜单
+};
 
 
 // 登录弹窗
@@ -237,6 +290,7 @@ body {
     padding-left: 20px;
     padding-right: 20px;
     box-shadow: inset 0px -1px 1px 0px rgba(219, 219, 219, 0.5);
+    position: relative;
 
     .logo {
         font-family: var(--font_aiRHjzievx_default);
@@ -262,6 +316,7 @@ body {
             font-size: 18px;
             font-weight: 400;
             color: #6C7C93;
+            cursor: pointer;
         }
 
         .menu-text:hover {
@@ -281,6 +336,7 @@ body {
             border: 1px solid #E5E7EB;
             background-color: #2134DE;
             color: #fff;
+            cursor: pointer;
         }
 
         .sign {
@@ -288,10 +344,242 @@ body {
             border-radius: 26px;
             border: 1px solid #2B57FF;
             color: #2B57FF;
+            cursor: pointer;
         }
     }
 
+    // 手机端汉堡菜单按钮
+    .mobile-menu-btn {
+        display: none;
+        flex-direction: column;
+        justify-content: space-around;
+        width: 30px;
+        height: 30px;
+        cursor: pointer;
+        z-index: 1001;
 
+        .hamburger-line {
+            width: 100%;
+            height: 3px;
+            background-color: #1D2530;
+            border-radius: 3px;
+            transition: all 0.3s ease;
+
+            &.active:nth-child(1) {
+                transform: rotate(45deg) translate(8px, 8px);
+            }
+
+            &.active:nth-child(2) {
+                opacity: 0;
+            }
+
+            &.active:nth-child(3) {
+                transform: rotate(-45deg) translate(8px, -8px);
+            }
+        }
+    }
+}
+
+// 手机端侧边栏菜单遮罩
+.mobile-menu-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+
+    &.active {
+        opacity: 1;
+        pointer-events: all;
+    }
+}
+
+// 手机端侧边栏菜单
+.mobile-menu {
+    display: none;
+    position: fixed;
+    top: 0;
+    right: -100%;
+    width: 280px;
+    height: 100%;
+    background-color: #fff;
+    z-index: 1000;
+    transition: right 0.3s ease;
+    box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+    flex-direction: column;
+
+    &.active {
+        right: 0;
+    }
+
+    .mobile-menu-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px;
+        border-bottom: 1px solid #E5E7EB;
+
+        .logo {
+            font-size: 20px;
+
+            .logo-img {
+                width: 32px;
+                height: 32px;
+            }
+        }
+
+        .close-btn {
+            font-size: 32px;
+            color: #6C7C93;
+            cursor: pointer;
+            line-height: 1;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            &:hover {
+                color: #1D2530;
+            }
+        }
+    }
+
+    .mobile-menu-content {
+        flex: 1;
+        padding: 20px 0;
+        overflow-y: auto;
+
+        .mobile-menu-item {
+            padding: 16px 20px;
+            font-size: 16px;
+            font-weight: 400;
+            color: #6C7C93;
+            cursor: pointer;
+            border-bottom: 1px solid #F3F4F6;
+            transition: all 0.2s ease;
+
+            &:hover {
+                background-color: #F9FAFB;
+                color: #1D2530;
+            }
+
+            &.menu-active {
+                font-weight: 500;
+                color: #2134DE;
+                background-color: #F0F4FF;
+            }
+        }
+    }
+
+    .mobile-menu-footer {
+        padding: 20px;
+        border-top: 1px solid #E5E7EB;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+
+        .mobile-login-btn {
+            padding: 12px 24px;
+            border-radius: 26px;
+            border: 1px solid #E5E7EB;
+            background-color: #2134DE;
+            color: #fff;
+            text-align: center;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+
+            &:active {
+                background-color: #1a28b8;
+            }
+        }
+
+        .mobile-register-btn {
+            padding: 12px 24px;
+            border-radius: 26px;
+            border: 1px solid #2B57FF;
+            color: #2B57FF;
+            text-align: center;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+
+            &:active {
+                background-color: #F0F4FF;
+            }
+        }
+    }
+}
+
+// 响应式设计 - 手机端适配
+@media (max-width: 768px) {
+    .navigation {
+        padding-left: 16px;
+        padding-right: 16px;
+        height: auto;
+        min-height: 60px;
+        padding-top: 16px;
+        padding-bottom: 16px;
+
+        .logo {
+            font-size: 20px;
+
+            .logo-img {
+                width: 32px;
+                height: 32px;
+            }
+        }
+
+        .naviga-menu {
+            display: none;
+        }
+
+        .naviga-button {
+            display: none;
+        }
+
+        .mobile-menu-btn {
+            display: flex;
+        }
+    }
+
+    .mobile-menu-overlay {
+        display: block;
+    }
+
+    .mobile-menu {
+        display: flex;
+    }
+}
+
+// 小屏幕手机适配
+@media (max-width: 480px) {
+    .navigation {
+        .logo {
+            font-size: 18px;
+
+            .logo-img {
+                width: 28px;
+                height: 28px;
+            }
+        }
+    }
+
+    .mobile-menu {
+        width: 100%;
+        right: -100%;
+
+        &.active {
+            right: 0;
+        }
+    }
 }
 
 .el-dialog__title {

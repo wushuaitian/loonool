@@ -5,13 +5,17 @@
     <div class="content-wrapper">
       <!-- 标题 -->
       <div class="main-title">
-        <div class="title-line">视觉内容进入商业</div>
-        <div class="title-line">世界前的安全层。</div>
+        视觉内容进入商业世界前的安全层。
       </div>
 
       <!-- 副标题 -->
       <div class="subtitle">
-        查重·存证·维权 ———— 一站式原创设计保护平台
+        查重・存证・维权 —— 一站式原创设计保护平台
+      </div>
+      
+      <!-- 补充说明 -->
+      <div class="subtitle-extra">
+        精准识别抄袭风险，锁定原创权属，让每一份创意都有专属 "保护盾"
       </div>
 
       <!-- 上传区域 -->
@@ -33,7 +37,12 @@
           
           <div class="upload-content">
             <div class="upload-icon-wrapper">
-              <img v-if="!uploadedImages.length" src="/img/uploadimg.png" alt="" class="upload-icon">
+              <svg v-if="!uploadedImages.length" class="upload-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <!-- 照片图标 -->
+                <rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                <path d="M3 15l5-5 4 4 5-5 4 4v2H3z" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+                <circle cx="8" cy="9" r="1.5" fill="currentColor"/>
+              </svg>
               <div v-else class="image-preview-grid">
                 <div 
                   v-for="(img, index) in uploadedImages" 
@@ -57,8 +66,8 @@
             </div>
           </div>
 
-          <div class="submit-btn" 
-               v-if="uploadedImages.length > 0"
+          <div class="submit-btn"
+               :class="{ 'has-images': uploadedImages.length > 0 }"
                @click.stop="handleSubmit">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="22" y1="2" x2="11" y2="13"></line>
@@ -209,9 +218,9 @@ const handleSubmit = () => {
   position: relative;
   overflow: hidden;
   display: flex;
-  align-items: center;
+//   align-items: center;
   justify-content: center;
-  padding: 20px 20px;
+  padding: 10% 20px;
 
   // 渐变背景
   background: linear-gradient(
@@ -236,6 +245,12 @@ const handleSubmit = () => {
       background-position: 0% 50%;
     }
   }
+
+  @media (max-width: 768px) {
+    padding: 20px 16px;
+    padding-top: 60px;
+    padding-bottom: 40px;
+  }
 }
 
 .content-wrapper {
@@ -246,38 +261,60 @@ const handleSubmit = () => {
   align-items: center;
   z-index: 1;
   padding-top: 0;
+
+  @media (max-width: 768px) {
+    width: 100%;
+  }
 }
 
 // 主标题
 .main-title {
+  margin: auto;
+  width: 700px;
   text-align: center;
-  margin-bottom: 20px;
+  font-size: 80px;
+  font-weight: 600;
+  color: #1D2129;
+  line-height: 1.2;
+  font-family: PingFangSC, PingFang SC, -apple-system, BlinkMacSystemFont, sans-serif;
+  margin-bottom: 0;
   margin-top: 0;
 
-  .title-line {
-    font-size: 64px;
-    font-weight: 700;
-    color: #1D2129;
-    line-height: 1.2;
-    font-family: PingFangSC, PingFang SC, -apple-system, BlinkMacSystemFont, sans-serif;
-
-    @media (max-width: 768px) {
-      font-size: 40px;
-    }
+  @media (max-width: 768px) {
+    font-size: 40px;
+    width: 90%;
   }
 }
 
 // 副标题
 .subtitle {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 600;
   color: #1D2129;
   text-align: center;
+  padding-top: 50px;
+  margin-bottom: 0;
+  font-family: PingFangSC, PingFang SC, -apple-system, BlinkMacSystemFont, sans-serif;
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+    padding-top: 30px;
+  }
+}
+
+// 补充说明
+.subtitle-extra {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1D2129;
+  text-align: center;
+  padding-top: 20px;
   margin-bottom: 60px;
   font-family: PingFangSC, PingFang SC, -apple-system, BlinkMacSystemFont, sans-serif;
 
   @media (max-width: 768px) {
-    font-size: 16px;
+    font-size: 14px;
+    padding-top: 15px;
     margin-bottom: 40px;
   }
 }
@@ -289,13 +326,18 @@ const handleSubmit = () => {
   display: flex;
   flex-direction: column;
   align-items: center;
+
+  @media (max-width: 768px) {
+    width: 100%;
+    max-width: 100%;
+  }
 }
 
 .upload-container {
   width: 100%;
   background: #FFFFFF;
   border: 1px solid #E4E5EA;
-  border-radius: 20px;
+  border-radius: 50px;
   padding: 20px 30px;
   display: flex;
   align-items: center;
@@ -314,6 +356,12 @@ const handleSubmit = () => {
     border-style: dashed;
     background: #F7F8FA;
   }
+
+  @media (max-width: 768px) {
+    border-radius: 24px;
+    padding: 16px 20px;
+    min-height: 56px;
+  }
 }
 
 .upload-content {
@@ -321,6 +369,10 @@ const handleSubmit = () => {
   display: flex;
   align-items: center;
   gap: 15px;
+
+  @media (max-width: 768px) {
+    gap: 12px;
+  }
 }
 
 .upload-icon-wrapper {
@@ -333,6 +385,13 @@ const handleSubmit = () => {
   width: 24px;
   height: 24px;
   object-fit: contain;
+  color: #86909C;
+  flex-shrink: 0;
+
+  @media (max-width: 768px) {
+    width: 20px;
+    height: 20px;
+  }
 }
 
 .upload-text {
@@ -340,6 +399,10 @@ const handleSubmit = () => {
   color: #4E5969;
   font-weight: 400;
   font-family: PingFangSC, PingFang SC, -apple-system, BlinkMacSystemFont, sans-serif;
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+  }
 }
 
 // 图片预览网格
@@ -349,6 +412,12 @@ const handleSubmit = () => {
   gap: 12px;
   width: 100%;
   max-width: 600px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+    gap: 8px;
+    max-width: 100%;
+  }
 }
 
 .preview-item {
@@ -359,6 +428,12 @@ const handleSubmit = () => {
   overflow: hidden;
   border: 1px solid #E4E5EA;
   background: #F7F8FA;
+
+  @media (max-width: 768px) {
+    width: 60px;
+    height: 60px;
+    border-radius: 6px;
+  }
 
   .preview-image {
     width: 100%;
@@ -382,6 +457,14 @@ const handleSubmit = () => {
     cursor: pointer;
     z-index: 2;
     transition: transform 0.2s;
+
+    @media (max-width: 768px) {
+      width: 18px;
+      height: 18px;
+      font-size: 12px;
+      top: -4px;
+      right: -4px;
+    }
 
     &:hover {
       transform: scale(1.1);
@@ -429,6 +512,12 @@ const handleSubmit = () => {
   cursor: pointer;
   transition: all 0.2s;
 
+  @media (max-width: 768px) {
+    width: 60px;
+    height: 60px;
+    border-radius: 6px;
+  }
+
   &:hover {
     border-color: #2134DE;
     background: #E3E3FF;
@@ -439,6 +528,10 @@ const handleSubmit = () => {
     color: #4E5969;
     font-weight: 300;
     line-height: 1;
+
+    @media (max-width: 768px) {
+      font-size: 24px;
+    }
   }
 }
 
@@ -446,7 +539,7 @@ const handleSubmit = () => {
 .submit-btn {
   width: 48px;
   height: 48px;
-  background: #2134DE;
+  background: #C9CDD4;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -457,10 +550,20 @@ const handleSubmit = () => {
   flex-shrink: 0;
   margin-left: 20px;
 
-  &:hover {
-    background: #1a2bb8;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(33, 52, 222, 0.3);
+  @media (max-width: 768px) {
+    width: 40px;
+    height: 40px;
+    margin-left: 12px;
+  }
+
+  &.has-images {
+    background: #2134DE;
+    
+    &:hover {
+      background: #1a2bb8;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(33, 52, 222, 0.3);
+    }
   }
 
   &:active {
@@ -470,6 +573,11 @@ const handleSubmit = () => {
   svg {
     width: 20px;
     height: 20px;
+
+    @media (max-width: 768px) {
+      width: 18px;
+      height: 18px;
+    }
   }
 }
 
