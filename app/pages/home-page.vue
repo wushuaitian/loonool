@@ -12,27 +12,24 @@
                 <div class="view-report b-r-40">查看示例报告</div>
             </div>
         </div>
-        <!-- book -->
-        <div class="introduc introduc-two bg-img flex justify-center align-center m-r-20">
+        <!-- <div class="introduc introduc-two bg-img flex justify-center align-center m-r-20">
             <div class="introduc-book book-one bg-img m-r-20 flex justify-end flex-column">
             </div>
             <div class="book-two bg-img m-r-20"></div>
             <div class="introduc-book book-three bg-img"></div>
         </div>
 
-        <!-- 面向人群 -->
         <div class="audience introduc">
             <div class="audience-tab flex justify-around align-center">
                 <div class="tab-text text-18 text-bold-500" v-for="(el, idnex) in tabList" @click="tabClick(el.value)"
                     :class="currentTab == el.value ? 'active-tab' : ''">
                     {{ el.text }}
                 </div>
-                <!-- 内容 -->
                  <div class="audience-content">
 
                  </div>
             </div>
-        </div>
+        </div> -->
     </div>
 </template>
 
