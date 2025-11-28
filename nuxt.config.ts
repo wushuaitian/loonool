@@ -6,6 +6,9 @@ export default defineNuxtConfig({
   },
 
   runtimeConfig: {
+    // 私有配置（仅在服务端可用）
+    imaggaApiKey: process.env.IMAGGA_API_KEY || '',
+    imaggaApiSecret: process.env.IMAGGA_API_SECRET || '',
     public: {
       apiBase: 'http://192.168.1.23:8030/'
     }

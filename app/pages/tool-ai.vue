@@ -32,7 +32,6 @@
             accept="image/jpeg,image/png,image/gif"
             @change="handleFileSelect"
             style="display: none;"
-            multiple
           />
           
           <div class="upload-content">
@@ -54,9 +53,6 @@
                   <div v-if="img.uploading" class="uploading-overlay">
                     <div class="loading-spinner"></div>
                   </div>
-                </div>
-                <div v-if="uploadedImages.length < 5" class="add-more-btn" @click.stop="triggerFileInput">
-                  <div class="add-icon">+</div>
                 </div>
               </div>
             </div>
@@ -272,7 +268,7 @@ const handleSubmit = () => {
   margin: auto;
   width: 700px;
   text-align: center;
-  font-size: 80px;
+  font-size: 60px;
   font-weight: 600;
   color: #1D2129;
   line-height: 1.2;
@@ -281,7 +277,7 @@ const handleSubmit = () => {
   margin-top: 0;
 
   @media (max-width: 768px) {
-    font-size: 40px;
+    font-size: 32px;
     width: 90%;
   }
 }
@@ -338,13 +334,15 @@ const handleSubmit = () => {
   background: #FFFFFF;
   border: 1px solid #E4E5EA;
   border-radius: 50px;
-  padding: 20px 30px;
+  padding: 12px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
+  max-height: 120px;
+  overflow: hidden;
 
   &:hover {
     border-color: #DDE0E7;
@@ -359,8 +357,9 @@ const handleSubmit = () => {
 
   @media (max-width: 768px) {
     border-radius: 24px;
-    padding: 16px 20px;
+    padding: 10px 16px;
     min-height: 56px;
+    max-height: 100px;
   }
 }
 
@@ -408,31 +407,55 @@ const handleSubmit = () => {
 // 图片预览网格
 .image-preview-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
+  gap: 6px;
   width: 100%;
-  max-width: 600px;
+  max-width: 500px;
+  max-height: 80px;
+  overflow-y: auto;
+  padding-right: 4px;
+
+  // 自定义滚动条样式
+  &::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #DDE0E7;
+    border-radius: 2px;
+    
+    &:hover {
+      background: #C9CDD4;
+    }
+  }
 
   @media (max-width: 768px) {
-    grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-    gap: 8px;
+    grid-template-columns: repeat(auto-fill, minmax(36px, 1fr));
+    gap: 5px;
     max-width: 100%;
+    max-height: 70px;
   }
 }
 
 .preview-item {
   position: relative;
-  width: 80px;
-  height: 80px;
-  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  border-radius: 4px;
   overflow: hidden;
   border: 1px solid #E4E5EA;
   background: #F7F8FA;
+  flex-shrink: 0;
 
   @media (max-width: 768px) {
-    width: 60px;
-    height: 60px;
-    border-radius: 6px;
+    width: 36px;
+    height: 36px;
+    border-radius: 4px;
   }
 
   .preview-image {
@@ -443,27 +466,27 @@ const handleSubmit = () => {
 
   .remove-btn {
     position: absolute;
-    top: -6px;
-    right: -6px;
-    width: 20px;
-    height: 20px;
+    top: -4px;
+    right: -4px;
+    width: 16px;
+    height: 16px;
     background: #FF4D4F;
     color: white;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 14px;
+    font-size: 12px;
     cursor: pointer;
     z-index: 2;
     transition: transform 0.2s;
 
     @media (max-width: 768px) {
-      width: 18px;
-      height: 18px;
-      font-size: 12px;
-      top: -4px;
-      right: -4px;
+      width: 14px;
+      height: 14px;
+      font-size: 10px;
+      top: -3px;
+      right: -3px;
     }
 
     &:hover {
@@ -501,21 +524,22 @@ const handleSubmit = () => {
 }
 
 .add-more-btn {
-  width: 80px;
-  height: 80px;
+  width: 40px;
+  height: 40px;
   border: 1px dashed #DDE0E7;
-  border-radius: 8px;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #F7F8FA;
   cursor: pointer;
   transition: all 0.2s;
+  flex-shrink: 0;
 
   @media (max-width: 768px) {
-    width: 60px;
-    height: 60px;
-    border-radius: 6px;
+    width: 36px;
+    height: 36px;
+    border-radius: 4px;
   }
 
   &:hover {
@@ -524,21 +548,21 @@ const handleSubmit = () => {
   }
 
   .add-icon {
-    font-size: 32px;
+    font-size: 18px;
     color: #4E5969;
     font-weight: 300;
     line-height: 1;
 
     @media (max-width: 768px) {
-      font-size: 24px;
+      font-size: 16px;
     }
   }
 }
 
 // 提交按钮
 .submit-btn {
-  width: 48px;
-  height: 48px;
+  width: 40px;
+  height: 40px;
   background: #C9CDD4;
   border-radius: 50%;
   display: flex;
@@ -548,12 +572,12 @@ const handleSubmit = () => {
   transition: all 0.3s;
   color: white;
   flex-shrink: 0;
-  margin-left: 20px;
+  margin-left: 15px;
 
   @media (max-width: 768px) {
-    width: 40px;
-    height: 40px;
-    margin-left: 12px;
+    width: 36px;
+    height: 36px;
+    margin-left: 10px;
   }
 
   &.has-images {
@@ -571,12 +595,12 @@ const handleSubmit = () => {
   }
 
   svg {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
 
     @media (max-width: 768px) {
-      width: 18px;
-      height: 18px;
+      width: 16px;
+      height: 16px;
     }
   }
 }
