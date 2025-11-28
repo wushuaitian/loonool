@@ -11,8 +11,8 @@
                 <div @click="navigaJump('home')" class="menu-text" :class="{ 'menu-active': activeMenu == 'home' }">
                     首页
                 </div>
-                <div @click="navigaJump('plagiarism')" class="menu-text"
-                    :class="{ 'menu-active': activeMenu === 'plagiarism' }">
+                <div @click="navigaJump('AiTool')" class="menu-text"
+                    :class="{ 'menu-active': activeMenu === 'AiTool' }">
                     检测查重
                 </div>
                 <div @click="navigaJump('historical')" class="menu-text"
@@ -69,6 +69,9 @@ import Plagiarism from "./plagiarism.vue";
 import Historical from "./historical-results.vue";
 import Article from "./blog/index.vue";
 import problem from "./problem.vue";
+
+// 工具页 ai生成
+import AiTool from "./tool-ai.vue";
 
 
 
@@ -195,9 +198,16 @@ const navigaJump = (event) => {
             activeMenu.value = 'article'
 
             break;
+        // ai 生成 问题页
         case 'problem':
             component.value = problem
             activeMenu.value = 'problem'
+
+            break;
+        // ai 生成工具页
+        case 'AiTool':
+            component.value = AiTool
+            activeMenu.value = 'AiTool'
 
             break;
         default:
