@@ -63,18 +63,56 @@
           </div>
 
           <div class="submit-btn"
-               :class="{ 'has-images': uploadedImages.length > 0 }"
-               @click.stop="handleSubmit">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+               :class="{ 'has-images': uploadedImages.length > 0, 'loading': isProcessing }"
+               @click.stop="handleSubmit"
+               :disabled="isProcessing">
+            <svg v-if="!isProcessing" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <line x1="22" y1="2" x2="11" y2="13"></line>
               <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
             </svg>
+            <div v-else class="loading-spinner-small"></div>
           </div>
         </div>
 
         <!-- 说明文字 -->
         <div class="upload-hint">
-          上传最大5MB的JPEG\PNG或GIF格式图片，即可立即进行原创性验证。
+          上传最大5MB的JPEG\PNG或GIF格式图片（仅限1张），即可立即进行原创性验证。
+        </div>
+
+        <!-- 结果显示区域 -->
+        <div v-if="result" class="result-section">
+          <div class="result-card" :class="`risk-${result.similarity.riskLevel}`">
+            <div class="result-header">
+              <div class="result-title">检测结果</div>
+              <div class="result-score">
+                <span class="score-value">{{ result.similarity.score.toFixed(1) }}%</span>
+                <span class="score-label">相似度</span>
+              </div>
+            </div>
+            
+            <div class="result-message" :class="`message-${result.similarity.riskLevel}`">
+              {{ result.similarity.message }}
+            </div>
+
+            <div v-if="result.similarImages && result.similarImages.length > 0" class="similar-images">
+              <div class="similar-title">相似图片 ({{ result.totalMatches }})</div>
+              <div class="similar-list">
+                <div 
+                  v-for="(img, index) in result.similarImages" 
+                  :key="index"
+                  class="similar-item"
+                >
+                  <div class="similar-score">{{ img.score.toFixed(1) }}%</div>
+                  <img v-if="img.url" :src="img.url" :alt="`相似图片 ${index + 1}`" class="similar-image">
+                  <div v-else class="similar-placeholder">无预览</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="result-actions">
+              <button class="action-btn" @click="resetResult">重新检测</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -99,10 +137,29 @@ const uploadedImages = ref<Array<{
   uploading?: boolean
 }>>([])
 
+// 处理状态
+const isProcessing = ref(false)
+
+// 检测结果
+const result = ref<{
+  similarity: {
+    score: number
+    maxScore: number
+    riskLevel: 'low' | 'medium' | 'high'
+    message: string
+  }
+  similarImages: Array<{
+    imageId: string
+    score: number
+    url: string | null
+  }>
+  totalMatches: number
+} | null>(null)
+
 // 触发文件选择
 const triggerFileInput = () => {
-  if (uploadedImages.value.length >= 5) {
-    ElMessage.warning('最多只能上传5张图片')
+  if (uploadedImages.value.length >= 1) {
+    ElMessage.warning('最多只能上传1张图片')
     return
   }
   fileInputRef.value?.click()
@@ -141,35 +198,43 @@ const handleDrop = (event: DragEvent) => {
 
 // 处理文件
 const processFiles = (files: File[]) => {
-  const remainingSlots = 5 - uploadedImages.value.length
-  const filesToProcess = files.slice(0, remainingSlots)
-
-  if (files.length > remainingSlots) {
-    ElMessage.warning(`最多只能上传5张图片，已选择前${remainingSlots}张`)
+  // 如果已有图片，先清空
+  if (uploadedImages.value.length > 0) {
+    uploadedImages.value.forEach(img => {
+      URL.revokeObjectURL(img.url)
+    })
+    uploadedImages.value = []
   }
 
-  filesToProcess.forEach(file => {
-    // 检查文件类型
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif']
-    if (!allowedTypes.includes(file.type)) {
-      ElMessage.error(`${file.name} 不是支持的格式（JPEG/PNG/GIF）`)
-      return
-    }
+  // 只处理第一个文件
+  const file = files[0]
+  if (!file) return
 
-    // 检查文件大小（5MB）
-    if (file.size > 5 * 1024 * 1024) {
-      ElMessage.error(`${file.name} 文件大小超过5MB`)
-      return
-    }
+  // 检查文件类型
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif']
+  if (!allowedTypes.includes(file.type)) {
+    ElMessage.error(`${file.name} 不是支持的格式（JPEG/PNG/GIF）`)
+    return
+  }
 
-    // 创建预览URL
-    const url = URL.createObjectURL(file)
-    uploadedImages.value.push({
-      name: file.name,
-      url: url,
-      file: file,
-      uploading: false
-    })
+  // 检查文件大小（5MB）
+  if (file.size > 5 * 1024 * 1024) {
+    ElMessage.error(`${file.name} 文件大小超过5MB`)
+    return
+  }
+
+  // 如果选择了多个文件，提示用户
+  if (files.length > 1) {
+    ElMessage.warning('只能上传1张图片，已选择第一张')
+  }
+
+  // 创建预览URL
+  const url = URL.createObjectURL(file)
+  uploadedImages.value.push({
+    name: file.name,
+    url: url,
+    file: file,
+    uploading: false
   })
 }
 
@@ -183,27 +248,109 @@ const removeImage = (index: number) => {
 }
 
 // 提交处理
-const handleSubmit = () => {
+const handleSubmit = async () => {
   if (uploadedImages.value.length === 0) {
     ElMessage.warning('请先上传图片')
     return
   }
 
-  // 这里可以添加实际的提交逻辑
-  ElMessage.success('开始进行原创性验证...')
-  
-  // 模拟上传过程
-  uploadedImages.value.forEach(img => {
-    img.uploading = true
-  })
+  if (isProcessing.value) {
+    return
+  }
 
-  // 模拟上传完成
-  setTimeout(() => {
+  try {
+    isProcessing.value = true
+    result.value = null
+    
+    // 设置上传状态
+    uploadedImages.value.forEach(img => {
+      img.uploading = true
+    })
+
+    ElMessage.success('开始进行原创性验证...')
+
+    // 准备 FormData
+    const firstImage = uploadedImages.value[0]
+    if (!firstImage) {
+      throw new Error('No image to upload')
+    }
+
+    const formData = new FormData()
+    formData.append('image', firstImage.file)
+
+    // 调用后端 API
+    const response = await $fetch<{
+      success: boolean
+      uploadId?: string
+      similarity: {
+        score: number
+        maxScore: number
+        riskLevel: 'low' | 'medium' | 'high'
+        message: string
+      }
+      similarImages?: Array<{
+        imageId: string
+        score: number
+        url: string | null
+      }>
+      totalMatches?: number
+    }>('/api/similarity', {
+      method: 'POST',
+      body: formData,
+      timeout: 60000 // 60秒超时
+    })
+
+    // 处理结果
+    if (response.success) {
+      result.value = {
+        similarity: response.similarity,
+        similarImages: response.similarImages || [],
+        totalMatches: response.totalMatches || 0
+      }
+      
+      // 根据风险等级显示不同的消息
+      if (response.similarity.riskLevel === 'high') {
+        ElMessage.error('检测到高度相似图片，存在抄袭风险')
+      } else if (response.similarity.riskLevel === 'medium') {
+        ElMessage.warning('检测到中等相似度，建议进一步检查')
+      } else {
+        ElMessage.success('原创性验证完成，未发现明显相似图片')
+      }
+    } else {
+      throw new Error('检测失败')
+    }
+  } catch (error: any) {
+    console.error('Similarity check error:', error)
+    
+    // 处理不同类型的错误
+    let errorMessage = '检测失败，请稍后重试'
+    
+    if (error.statusCode === 503 || error.status === 503) {
+      errorMessage = '图片检测服务暂时不可用，请稍后重试'
+    } else if (error.statusCode === 504 || error.status === 504) {
+      errorMessage = '请求超时，请检查网络连接后重试'
+    } else if (error.data?.message) {
+      errorMessage = error.data.message
+    } else if (error.message) {
+      errorMessage = error.message
+    }
+    
+    ElMessage.error(errorMessage)
+  } finally {
+    isProcessing.value = false
     uploadedImages.value.forEach(img => {
       img.uploading = false
     })
-    ElMessage.success('验证完成')
-  }, 2000)
+  }
+}
+
+// 重置结果
+const resetResult = () => {
+  result.value = null
+  uploadedImages.value.forEach(img => {
+    URL.revokeObjectURL(img.url)
+  })
+  uploadedImages.value = []
 }
 </script>
 
@@ -618,6 +765,249 @@ const handleSubmit = () => {
   @media (max-width: 768px) {
     font-size: 12px;
     padding: 0 20px;
+  }
+}
+
+// 加载中的小 spinner
+.loading-spinner-small {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.submit-btn.loading {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+// 结果显示区域
+.result-section {
+  width: 100%;
+  max-width: 900px;
+  margin-top: 30px;
+
+  @media (max-width: 768px) {
+    margin-top: 20px;
+  }
+}
+
+.result-card {
+  background: #FFFFFF;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 2px solid #E4E5EA;
+
+  &.risk-high {
+    border-color: #FF4D4F;
+    background: linear-gradient(135deg, #FFF5F5 0%, #FFFFFF 100%);
+  }
+
+  &.risk-medium {
+    border-color: #FFA940;
+    background: linear-gradient(135deg, #FFF7E6 0%, #FFFFFF 100%);
+  }
+
+  &.risk-low {
+    border-color: #52C41A;
+    background: linear-gradient(135deg, #F6FFED 0%, #FFFFFF 100%);
+  }
+
+  @media (max-width: 768px) {
+    padding: 20px 16px;
+    border-radius: 12px;
+  }
+}
+
+.result-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #E4E5EA;
+
+  @media (max-width: 768px) {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+}
+
+.result-title {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1D2129;
+  font-family: PingFangSC, PingFang SC, -apple-system, BlinkMacSystemFont, sans-serif;
+
+  @media (max-width: 768px) {
+    font-size: 18px;
+  }
+}
+
+.result-score {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+
+  @media (max-width: 768px) {
+    align-items: flex-start;
+  }
+}
+
+.score-value {
+  font-size: 32px;
+  font-weight: 700;
+  color: #1D2129;
+  line-height: 1;
+  font-family: PingFangSC, PingFang SC, -apple-system, BlinkMacSystemFont, sans-serif;
+
+  @media (max-width: 768px) {
+    font-size: 28px;
+  }
+}
+
+.score-label {
+  font-size: 14px;
+  color: #86909C;
+  margin-top: 4px;
+  font-weight: 400;
+}
+
+.result-message {
+  font-size: 16px;
+  line-height: 1.6;
+  margin-bottom: 24px;
+  padding: 16px;
+  border-radius: 8px;
+  font-weight: 500;
+  font-family: PingFangSC, PingFang SC, -apple-system, BlinkMacSystemFont, sans-serif;
+
+  &.message-high {
+    background: #FFF1F0;
+    color: #CF1322;
+  }
+
+  &.message-medium {
+    background: #FFF7E6;
+    color: #D46B08;
+  }
+
+  &.message-low {
+    background: #F6FFED;
+    color: #389E0D;
+  }
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+    padding: 12px;
+  }
+}
+
+.similar-images {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #E4E5EA;
+}
+
+.similar-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1D2129;
+  margin-bottom: 16px;
+  font-family: PingFangSC, PingFang SC, -apple-system, BlinkMacSystemFont, sans-serif;
+
+  @media (max-width: 768px) {
+    font-size: 14px;
+    margin-bottom: 12px;
+  }
+}
+
+.similar-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 16px;
+
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 12px;
+  }
+}
+
+.similar-item {
+  position: relative;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #E4E5EA;
+  background: #F7F8FA;
+  aspect-ratio: 1;
+}
+
+.similar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.similar-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #86909C;
+  font-size: 12px;
+}
+
+.similar-score {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  backdrop-filter: blur(4px);
+}
+
+.result-actions {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #E4E5EA;
+  display: flex;
+  justify-content: center;
+}
+
+.action-btn {
+  padding: 10px 24px;
+  background: #2134DE;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s;
+  font-family: PingFangSC, PingFang SC, -apple-system, BlinkMacSystemFont, sans-serif;
+
+  &:hover {
+    background: #1a2bb8;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(33, 52, 222, 0.3);
+  }
+
+  &:active {
+    transform: translateY(0);
+  }
+
+  @media (max-width: 768px) {
+    padding: 8px 20px;
+    font-size: 13px;
   }
 }
 </style>
