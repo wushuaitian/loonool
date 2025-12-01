@@ -1,14 +1,12 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   devServer: {
-    host: '192.168.1.200',//自己电脑的Ip
+    host: '192.168.0.251',//自己电脑的Ip
     port: 3000,
   },
 
   runtimeConfig: {
     // 私有配置（仅在服务端可用）
-    imaggaApiKey: process.env.IMAGGA_API_KEY || '',
-    imaggaApiSecret: process.env.IMAGGA_API_SECRET || '',
     public: {
       apiBase: 'http://192.168.1.23:8030/'
     }
