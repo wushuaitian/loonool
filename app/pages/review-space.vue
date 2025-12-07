@@ -12,58 +12,30 @@
       <div class="subtitle">
         为您的创意项目建立一个专属空间，集中管理您的原创作品
       </div>
-      
+
       <!-- 创建表单区域 -->
       <div class="form-section">
-        <el-form 
-          ref="formRef" 
-          :model="formData" 
-          :rules="rules" 
-          label-position="top"
-          class="create-space-form"
-        >
+        <el-form ref="formRef" :model="formData" :rules="rules" label-position="top" class="create-space-form">
           <!-- 空间名称 -->
           <el-form-item label="空间名称" prop="name">
-            <el-input 
-              v-model="formData.name" 
-              placeholder="请输入空间名称（如：我的设计作品集）"
-              size="large"
-              :prefix-icon="Folder"
-              maxlength="50"
-              show-word-limit
-            />
+            <el-input v-model="formData.name" placeholder="请输入空间名称（如：我的设计作品集）" size="large" :prefix-icon="Folder"
+              maxlength="50" show-word-limit />
           </el-form-item>
 
           <!-- 空间描述 -->
           <el-form-item label="空间描述" prop="description">
-            <el-input 
-              v-model="formData.description" 
-              type="textarea"
-              :rows="4"
-              placeholder="请简要描述这个空间的用途（可选）"
-              maxlength="200"
-              show-word-limit
-            />
+            <el-input v-model="formData.description" type="textarea" :rows="4" placeholder="请简要描述这个空间的用途（可选）"
+              maxlength="200" show-word-limit />
           </el-form-item>
 
           <!-- 提交按钮 -->
           <el-form-item>
             <div class="form-actions">
-              <el-button 
-                type="primary" 
-                size="large"
-                :loading="isCreating"
-                @click="handleCreate"
-                class="create-btn"
-              >
+              <el-button type="primary" size="large" :loading="isCreating" @click="handleCreate" class="create-btn">
                 <span v-if="!isCreating">创建空间</span>
                 <span v-else>创建中...</span>
               </el-button>
-              <el-button 
-                size="large"
-                @click="handleReset"
-                :disabled="isCreating"
-              >
+              <el-button size="large" @click="handleReset" :disabled="isCreating">
                 重置
               </el-button>
             </div>
@@ -78,6 +50,9 @@
 import { ref, reactive } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Folder } from '@element-plus/icons-vue'
+
+import { loonoolWorkspaces } from "../../composables/login";
+
 
 // 表单引用
 const formRef = ref()
@@ -109,28 +84,42 @@ const handleCreate = async () => {
   try {
     // 表单验证
     await formRef.value.validate()
-    
+
     isCreating.value = true
 
     // TODO: 调用创建空间的API
     // 这里可以添加实际的API调用
     // const response = await createSpace(formData)
-    
-    // 模拟API调用
-    await new Promise(resolve => setTimeout(resolve, 1500))
 
-    ElMessage.success('空间创建成功！')
-    
+    // 模拟API调用
+    loonoolWorkspaces({
+      name: formData.name,
+      description: formData.description,
+    }).then(res => {
+      console.log(res, 'resresresresres');
+      // ElMessage.success(message);
+      if (res.data.code === 200) {
+        ElMessage.success('空间创建成功！')
+      }
+
+    }).catch(err => {
+      console.error(err);
+      // 显示错误提示
+      const errorMsg = err?.response?.data?.message || err?.message || '注册失败，请稍后重试';
+      ElMessage.error(errorMsg);
+    })
+
+
     // 重置表单
     handleReset()
-    
+
   } catch (error: any) {
     if (error?.fields) {
       // 表单验证失败
-      ElMessage.warning('请完善表单信息')
+      ElMessage.warning('请完善空间信息')
     } else {
       // API调用失败
-      ElMessage.error('创建失败，请稍后重试')
+      ElMessage.error('请完善空间信息')
       console.error('创建空间失败:', error)
     }
   } finally {
@@ -159,14 +148,12 @@ const handleReset = () => {
   padding-bottom: 60px;
 
   // 渐变背景
-  background: linear-gradient(
-    135deg,
-    #fff5e6 0%,
-    #ffe6f0 25%,
-    #e6e6ff 50%,
-    #e0f0ff 75%,
-    #f0f8ff 100%
-  );
+  background: linear-gradient(135deg,
+      #fff5e6 0%,
+      #ffe6f0 25%,
+      #e6e6ff 50%,
+      #e0f0ff 75%,
+      #f0f8ff 100%);
   background-size: 200% 200%;
   animation: gradientShift 15s ease infinite;
 
@@ -174,9 +161,11 @@ const handleReset = () => {
     0% {
       background-position: 0% 50%;
     }
+
     50% {
       background-position: 100% 50%;
     }
+
     100% {
       background-position: 0% 50%;
     }
@@ -379,5 +368,4 @@ const handleReset = () => {
     }
   }
 }
-
 </style>

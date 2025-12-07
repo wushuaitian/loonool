@@ -28,3 +28,16 @@ export function loonoolUserLogin(data: RequestParams) {
         data,
     })
 }
+
+/**
+ * 创建空间
+ */
+
+
+export function loonoolWorkspaces(data: RequestParams) {
+    return request({
+        url: '/loonool/workspaces',
+        method: 'post',
+        data,
+    })
+}

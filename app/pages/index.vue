@@ -11,13 +11,18 @@
                 <!-- <div @click="navigaJump('home')" class="menu-text" :class="{ 'menu-active': activeMenu == 'home' }">
                     首页
                 </div> -->
-                  <div @click="navigaJump('ReviewSpace')" class="menu-text" :class="{ 'menu-active': activeMenu == 'ReviewSpace' }">
+                <div @click="navigaJump('ReviewSpace')" class="menu-text"
+                    :class="{ 'menu-active': activeMenu == 'ReviewSpace' }">
                     创建空间
                 </div>
-                <div @click="navigaJump('AiTool')" class="menu-text"
+                <div @click="navigaJump('auditSpace')" class="menu-text"
+                    :class="{ 'menu-active': activeMenu == 'auditSpace' }">
+                    审核空间
+                </div>
+                <!-- <div @click="navigaJump('AiTool')" class="menu-text"
                     :class="{ 'menu-active': activeMenu === 'AiTool' }">
                     检测查重
-                </div>
+                </div> -->
                 <div @click="navigaJump('historical')" class="menu-text"
                     :class="{ 'menu-active': activeMenu == 'historical' }">
                     历史结果
@@ -27,11 +32,20 @@
                     帮助中心
                 </div>
             </div>
-            <!-- 登录按钮 -->
+            <!-- 登录按钮/用户头像 -->
             <div class="naviga-button flex align-center">
-                <div class="flex align-center">
+                <div v-if="!isLoggedIn" class="flex align-center">
                     <div class="loin m-r-10 text-bold-500" @click="loginOpen('login')">登录</div>
                     <div class="sign text-bold-500" @click="loginOpen('register')">注册</div>
+                </div>
+                <div v-else class="user-avatar-container" @click="toggleUserMenu">
+                    <!-- <img :src="userInfo.avatar || '/img/default-avatar.png'" :alt="userInfo.email || '用户'" class="user-avatar"> -->
+                    <img :src="userInfo.avatar || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'"
+                        class="h-40 w-40">
+
+                    <div v-if="userMenuOpen" class="user-menu">
+                        <div class="user-menu-item" @click="handleLogout">退出登录</div>
+                    </div>
                 </div>
             </div>
             <!-- 手机端汉堡菜单按钮 -->
@@ -60,10 +74,14 @@
                     :class="{ 'menu-active': activeMenu == 'ReviewSpace' }">
                     创建空间
                 </div>
-                <div @click="handleMobileMenuClick('AiTool')" class="mobile-menu-item"
+                <div @click="handleMobileMenuClick('auditSpace')" class="mobile-menu-item"
+                    :class="{ 'menu-active': activeMenu == 'auditSpace' }">
+                    审核空间
+                </div>
+                <!-- <div @click="handleMobileMenuClick('AiTool')" class="mobile-menu-item"
                     :class="{ 'menu-active': activeMenu === 'AiTool' }">
                     检测查重
-                </div>
+                </div> -->
                 <div @click="handleMobileMenuClick('historical')" class="mobile-menu-item"
                     :class="{ 'menu-active': activeMenu == 'historical' }">
                     历史结果
@@ -74,16 +92,27 @@
                 </div>
             </div>
             <div class="mobile-menu-footer">
-                <div class="mobile-login-btn" @click="handleMobileLogin('login')">登录</div>
-                <div class="mobile-register-btn" @click="handleMobileLogin('register')">注册</div>
+                <div v-if="!isLoggedIn">
+                    <div class="mobile-login-btn" @click="handleMobileLogin('login')">登录</div>
+                    <div class="mobile-register-btn" @click="handleMobileLogin('register')">注册</div>
+                </div>
+                <div v-else class="mobile-user-info">
+                    <div class="mobile-user-avatar-container">
+                        <!-- userInfo.avatar -->
+                        <!-- <img :src="userInfo.avatar || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'" class="mobile-user-avatar"> -->
+                        <img src="https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png" alt="">
+                        <!-- <div class="mobile-user-email">{{ userInfo.email || '用户' }}</div> -->
+                    </div>
+                    <div class="mobile-logout-btn" @click="handleLogout">退出登录</div>
+                </div>
             </div>
         </div>
         <component :is="component"> </component>
     </div>
 
-    <el-dialog v-model="loginVisible" :title="curretnTitle" :width="dialogWidth" 
-        :class="['login-dialog', curretnDialog === 'register' ? 'register-dialog' : '']"
-        :close-on-click-modal="false" :show-close="true">
+    <el-dialog v-model="loginVisible" :title="curretnTitle" :width="dialogWidth"
+        :class="['login-dialog', curretnDialog === 'register' ? 'register-dialog' : '']" :close-on-click-modal="false"
+        :show-close="true">
         <el-form ref="formRef" :label-position="top" label-width="auto" :model="formLabelAlign" style="max-width: 600px"
             :rules="rules">
             <el-form-item label="电子邮箱" label-position="top" prop="email">
@@ -105,7 +134,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, onUnmounted } from "vue";
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from "vue";
 import Home from "./home-page.vue";
 import Plagiarism from "./plagiarism.vue";
 import Historical from "./historical-results.vue";
@@ -116,17 +145,78 @@ import problem from "./problem.vue";
 import AiTool from "./tool-ai.vue";
 // 创建空间页 ai生成
 import ReviewSpace from "./review-space.vue";
+// 审核空间页 ai生成
+import auditSpace from "./audit-space.vue";
+
 
 
 import {
     loonoolUserRegister,
     loonoolUserLogin
 } from "../../composables/login.ts";
+import { ElMessage } from 'element-plus';
 
 //  组件切换
 const component = ref(ReviewSpace);
 
 const activeMenu = ref('ReviewSpace');
+
+// 用户登录状态
+const isLoggedIn = ref(false);
+const userInfo = ref({
+    email: '',
+    avatar: '',
+    username: ''
+});
+const userMenuOpen = ref(false);
+
+// 检查登录状态
+const checkLoginStatus = () => {
+    const token = localStorage.getItem('token');
+    const savedUserInfo = localStorage.getItem('userInfo');
+    if (token && savedUserInfo) {
+        isLoggedIn.value = true;
+        try {
+            userInfo.value = JSON.parse(savedUserInfo);
+        } catch (e) {
+            console.error('解析用户信息失败', e);
+        }
+    }
+};
+
+// 切换用户菜单
+const toggleUserMenu = () => {
+    userMenuOpen.value = !userMenuOpen.value;
+};
+
+// 退出登录
+const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('userInfo');
+    isLoggedIn.value = false;
+    userInfo.value = {
+        email: '',
+        avatar: '',
+        username: ''
+    };
+    userMenuOpen.value = false;
+    ElMessage.success('已退出登录');
+};
+
+// 初始化时检查登录状态
+onMounted(() => {
+    checkLoginStatus();
+    // 点击外部关闭用户菜单
+    document.addEventListener('click', (e) => {
+        const target = e.target;
+        if (target && target.nodeType === 1) {
+            const element = target;
+            if (!element.closest || !element.closest('.user-avatar-container')) {
+                userMenuOpen.value = false;
+            }
+        }
+    });
+});
 
 // 响应式对话框宽度
 const isMobile = ref(false);
@@ -182,6 +272,17 @@ const loginOpen = (text) => {
 
     // 打开弹窗
     loginVisible.value = true;
+
+    // 在弹窗打开后清空表单数据和验证状态
+    nextTick(() => {
+        if (formRef.value) {
+            formRef.value.resetFields();
+        } else {
+            // 如果表单引用还未初始化，直接重置数据
+            formLabelAlign.email = '';
+            formLabelAlign.password = '';
+        }
+    });
 };
 
 
@@ -233,9 +334,28 @@ const loginButton = async () => {
                 passwordHash: formLabelAlign.password,
             }).then(res => {
                 console.log(res, 'resresresresres');
+                // 保存 token
+                if (res?.token || res?.data?.token) {
+                    localStorage.setItem('token', res?.token || res?.data?.token);
+                }
+                // 保存用户信息
+                const userData = {
+                    email: formLabelAlign.email,
+                    avatar: res?.avatar || res?.data?.avatar || '',
+                    username: res?.username || res?.data?.username || res?.email || res?.data?.email || formLabelAlign.email
+                };
+                localStorage.setItem('userInfo', JSON.stringify(userData));
+                userInfo.value = userData;
+                isLoggedIn.value = true;
+                // 显示返回的提示语
+                const message = res?.message || res?.msg || res?.data?.message || '登录成功';
+                ElMessage.success(message);
                 loginVisible.value = false;
             }).catch(err => {
                 console.error(err);
+                // 显示错误提示
+                const errorMsg = err?.response?.data?.message || err?.message || '登录失败，请稍后重试';
+                ElMessage.error(errorMsg);
             })
         } else {
             // 注册逻辑
@@ -244,9 +364,15 @@ const loginButton = async () => {
                 passwordHash: formLabelAlign.password,
             }).then(res => {
                 console.log(res, 'resresresresres');
+                // 显示返回的提示语
+                const message = res?.message || res?.msg || res?.data?.message || '注册成功';
+                ElMessage.success(message);
                 loginVisible.value = false;
             }).catch(err => {
                 console.error(err);
+                // 显示错误提示
+                const errorMsg = err?.response?.data?.message || err?.message || '注册失败，请稍后重试';
+                ElMessage.error(errorMsg);
             })
         }
     } catch (error) {
@@ -294,6 +420,12 @@ const navigaJump = (event) => {
         case 'ReviewSpace':
             component.value = ReviewSpace
             activeMenu.value = 'ReviewSpace'
+            break;
+
+        // ai 生成审查空间
+        case 'auditSpace':
+            component.value = auditSpace
+            activeMenu.value = 'auditSpace'
             break;
         default:
             break;
@@ -384,6 +516,55 @@ body {
             color: #2B57FF;
             cursor: pointer;
             -webkit-tap-highlight-color: transparent; // 移除移动端点击高亮
+        }
+
+        .user-avatar-container {
+            position: relative;
+            cursor: pointer;
+            -webkit-tap-highlight-color: transparent;
+
+            .user-avatar {
+                width: 40px;
+                height: 40px;
+                border-radius: 50%;
+                object-fit: cover;
+                border: 2px solid #E5E7EB;
+                transition: all 0.2s ease;
+
+                &:hover {
+                    border-color: #2134DE;
+                    box-shadow: 0 0 0 2px rgba(33, 52, 222, 0.1);
+                }
+            }
+
+            .user-menu {
+                position: absolute;
+                top: calc(100% + 8px);
+                right: 0;
+                background: #fff;
+                border-radius: 8px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                min-width: 120px;
+                z-index: 1000;
+                overflow: hidden;
+
+                .user-menu-item {
+                    padding: 12px 16px;
+                    font-size: 14px;
+                    color: #1D2530;
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+
+                    &:hover {
+                        background-color: #F3F4F6;
+                        color: #2134DE;
+                    }
+
+                    &:active {
+                        background-color: #E5E7EB;
+                    }
+                }
+            }
         }
     }
 
@@ -583,6 +764,61 @@ body {
                 transform: scale(0.98); // 点击反馈
             }
         }
+
+        .mobile-user-info {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+
+            .mobile-user-avatar-container {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+                padding: 12px;
+                background-color: #F9FAFB;
+                border-radius: 8px;
+
+                .mobile-user-avatar {
+                    width: 30px;
+                    height: 30px;
+                    border-radius: 50%;
+                    object-fit: cover;
+                    border: 2px solid #E5E7EB;
+                }
+
+                .mobile-user-email {
+                    flex: 1;
+                    font-size: 14px;
+                    color: #1D2530;
+                    font-weight: 500;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+            }
+
+            .mobile-logout-btn {
+                padding: 12px 24px;
+                border-radius: 26px;
+                border: 1px solid #E5E7EB;
+                background-color: #fff;
+                color: #EF4444;
+                text-align: center;
+                font-weight: 500;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                -webkit-tap-highlight-color: transparent;
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+
+                &:active {
+                    background-color: #FEF2F2;
+                    transform: scale(0.98);
+                }
+            }
+        }
     }
 }
 
@@ -722,6 +958,9 @@ body {
 }
 
 .login-dialog {
+    background-image: url('/img/login-bg.png');
+    background-size: cover;
+    padding: 0;
     .el-dialog {
         border-radius: 16px;
         overflow: hidden;
@@ -762,20 +1001,6 @@ body {
         padding-top: 0;
     }
 
-    // 登录弹窗底部渐变效果
-    &:not(.register-dialog) {
-        .el-dialog__body::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            height: 6px;
-            background: linear-gradient(90deg, #FCE7F3 0%, #E9D5FF 100%);
-            border-radius: 0 0 16px 16px;
-        }
-    }
-
     .el-form-item__label {
         font-weight: 500;
         color: #1D2530;
@@ -783,7 +1008,7 @@ body {
         margin-bottom: 10px;
         padding: 0;
     }
-    
+
     .el-form-item {
         margin-bottom: 24px;
     }

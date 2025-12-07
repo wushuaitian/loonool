@@ -3,16 +3,18 @@ import axios from 'axios';
 
 // 基本配置
 const instance = axios.create({
-  baseURL: 'http://192.168.0.77:8080/', // 根据实际情况修改API地址
+  baseURL: 'http://192.168.1.196:8080/', // 根据实际情况修改API地址
   timeout: 50000000 // 设置超时时间，单位为ms
 });
 
 // 请求拦截器建议增加认证头处理
-instance.interceptors.request.use(config => {
+instance.interceptors.request.use(config => { 
   // 示例：添加token
   const token = localStorage.getItem('token');
   if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+    // config.headers.Authorization = `Bearer${token}`;
+    config.headers.token = `${token}`;
+
   }
   return config;
 }, error => {
