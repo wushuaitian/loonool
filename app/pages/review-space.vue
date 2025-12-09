@@ -46,12 +46,15 @@
   </div>
 </template>
 
-<script setup lang="ts">
+<script setup>
 import { ref, reactive } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Folder } from '@element-plus/icons-vue'
 
 import { loonoolWorkspaces } from "../../composables/login";
+
+// 定义事件
+const emit = defineEmits(['spaceCreated'])
 
 
 // 表单引用
@@ -91,29 +94,28 @@ const handleCreate = async () => {
     // 这里可以添加实际的API调用
     // const response = await createSpace(formData)
 
-    // 模拟API调用
+    // 调用创建空间API
     loonoolWorkspaces({
       name: formData.name,
       description: formData.description,
     }).then(res => {
-      console.log(res, 'resresresresres');
-      // ElMessage.success(message);
-      if (res.data.code === 200) {
-        ElMessage.success('空间创建成功！')
-      }
+      ElMessage.success(res.message);
+      if (res.code === 200 && res.data?.id) {
+        // 通过事件通知父组件切换组件并传递id
+        emit('spaceCreated', res.data.id)
+        localStorage.setItem(workspaceId, res.data.id);
 
+        // 创建成功后重置表单
+        handleReset()
+      }
     }).catch(err => {
       console.error(err);
       // 显示错误提示
-      const errorMsg = err?.response?.data?.message || err?.message || '注册失败，请稍后重试';
+      const errorMsg = err?.response?.data?.message || err?.message || '创建失败，请稍后重试';
       ElMessage.error(errorMsg);
     })
 
-
-    // 重置表单
-    handleReset()
-
-  } catch (error: any) {
+  } catch (error) {
     if (error?.fields) {
       // 表单验证失败
       ElMessage.warning('请完善空间信息')

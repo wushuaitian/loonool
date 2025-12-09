@@ -1,7 +1,7 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   devServer: {
-    host: '192.168.1.200',//自己电脑的Ip
+    host: '192.168.0.251',//自己电脑的Ip
     port: 3000,
   },
 

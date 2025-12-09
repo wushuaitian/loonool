@@ -3,7 +3,7 @@ import axios from 'axios';
 
 // 基本配置
 const instance = axios.create({
-  baseURL: 'http://192.168.1.196:8080/', // 根据实际情况修改API地址
+  baseURL: 'http://192.168.0.77:8080/', // 根据实际情况修改API地址
   timeout: 50000000 // 设置超时时间，单位为ms
 });
 

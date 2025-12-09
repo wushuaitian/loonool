@@ -116,17 +116,17 @@ const tabClick = (el: string) => {
     }
 
     .book-one {
-        background-image: url('/img/book-one.png');
+        // background-image: url('/img/book-one.png');
     }
 
     .book-two {
         width: 390px;
         height: 430.09px;
-        background-image: url('/img/book-two.png');
+        // background-image: url('/img/book-two.png');
     }
 
     .book-three {
-        background-image: url('/img/book-three.png');
+        // background-image: url('/img/book-three.png');
     }
 
 }

@@ -41,3 +41,36 @@ export function loonoolWorkspaces(data: RequestParams) {
         data,
     })
 }
+
+/**
+ * 创建任务
+ */
+export function tasksuploadImage(data: RequestParams) {
+    return request({
+        url: `/api/workspaces/${data.workspaceId}/tasks/upload-image`,
+        method: 'post',
+        data,
+         headers: {
+            'Content-Type': 'multipart/form-data'
+        }   
+    })
+}
+
+//获取工作空间任务列表
+
+export function workspacesTasks(data: RequestParams) {
+    return request({
+        url: `/api/workspaces/${data.workspaceId}/tasks`,
+        method: 'get',
+        params: data
+    })
+}
+
+// 获取任务详情
+export function tasksgetTaskDetail(data: RequestParams) {
+    return request({
+        url: `/api/workspaces/${data.workspaceId}/tasks/${data.taskId}`,
+        method: 'get',
+        data,
+    })
+}

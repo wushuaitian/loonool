@@ -17,16 +17,20 @@
                 </div>
                 <div @click="navigaJump('auditSpace')" class="menu-text"
                     :class="{ 'menu-active': activeMenu == 'auditSpace' }">
-                    审核空间
+                    决策空间
+                </div>
+                  <div @click="navigaJump('mySpace')" class="menu-text"
+                    :class="{ 'menu-active': activeMenu == 'mySpace' }">
+                    我的空间
                 </div>
                 <!-- <div @click="navigaJump('AiTool')" class="menu-text"
                     :class="{ 'menu-active': activeMenu === 'AiTool' }">
                     检测查重
                 </div> -->
-                <div @click="navigaJump('historical')" class="menu-text"
+                <!-- <div @click="navigaJump('historical')" class="menu-text"
                     :class="{ 'menu-active': activeMenu == 'historical' }">
                     历史结果
-                </div>
+                </div> -->
                 <div @click="navigaJump('problem')" class="menu-text"
                     :class="{ 'menu-active': activeMenu == 'problem' }">
                     帮助中心
@@ -76,16 +80,20 @@
                 </div>
                 <div @click="handleMobileMenuClick('auditSpace')" class="mobile-menu-item"
                     :class="{ 'menu-active': activeMenu == 'auditSpace' }">
-                    审核空间
+                    决策空间
                 </div>
                 <!-- <div @click="handleMobileMenuClick('AiTool')" class="mobile-menu-item"
                     :class="{ 'menu-active': activeMenu === 'AiTool' }">
                     检测查重
                 </div> -->
-                <div @click="handleMobileMenuClick('historical')" class="mobile-menu-item"
+                  <div @click="handleMobileMenuClick('mySpace')" class="mobile-menu-item"
+                    :class="{ 'menu-active': activeMenu == 'mySpace' }">
+                    我的空间
+                </div>
+                <!-- <div @click="handleMobileMenuClick('historical')" class="mobile-menu-item"
                     :class="{ 'menu-active': activeMenu == 'historical' }">
                     历史结果
-                </div>
+                </div> -->
                 <div @click="handleMobileMenuClick('problem')" class="mobile-menu-item"
                     :class="{ 'menu-active': activeMenu == 'problem' }">
                     了解更多
@@ -107,7 +115,7 @@
                 </div>
             </div>
         </div>
-        <component :is="component"> </component>
+        <component :is="component" :spaceId="currentSpaceId" @spaceCreated="handleSpaceCreated"> </component>
     </div>
 
     <el-dialog v-model="loginVisible" :title="curretnTitle" :width="dialogWidth"
@@ -140,6 +148,8 @@ import Plagiarism from "./plagiarism.vue";
 import Historical from "./historical-results.vue";
 import Article from "./blog/index.vue";
 import problem from "./problem.vue";
+// 我的工具
+import mySpace from "./my-space.vue";
 
 // 工具页 ai生成
 import AiTool from "./tool-ai.vue";
@@ -160,6 +170,15 @@ import { ElMessage } from 'element-plus';
 const component = ref(ReviewSpace);
 
 const activeMenu = ref('ReviewSpace');
+
+// 当前空间ID
+const currentSpaceId = ref(null);
+
+// 处理空间创建成功事件
+const handleSpaceCreated = (spaceId) => {
+  currentSpaceId.value = spaceId;
+  navigaJump('auditSpace');
+};
 
 // 用户登录状态
 const isLoggedIn = ref(false);
@@ -426,6 +445,12 @@ const navigaJump = (event) => {
         case 'auditSpace':
             component.value = auditSpace
             activeMenu.value = 'auditSpace'
+            break;
+
+        // 我的空间
+         case 'mySpace':
+            component.value = mySpace
+            activeMenu.value = 'mySpace'
             break;
         default:
             break;

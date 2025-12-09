@@ -34,3 +34,44 @@
     color: #262E3B;
 }
 
+/* ==================
+   全局滚动条样式
+==================== */
+
+/* Webkit浏览器滚动条样式 */
+/* Webkit浏览器滚动条样式 */
+::-webkit-scrollbar {
+    width: 0px;  /* 默认隐藏滚动条 */
+    height: 0px;
+}
+
+/* 当需要时显示滚动条 */
+.scrollable::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+    border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 2px;
+    transition: background 0.3s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+/* Firefox滚动条样式 */
+* {
+    scrollbar-width: none; /* 隐藏滚动条 */
+}
+
+.scrollable {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+}
