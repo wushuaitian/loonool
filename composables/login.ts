@@ -45,9 +45,9 @@ export function loonoolWorkspaces(data: RequestParams) {
 /**
  * 创建任务
  */
-export function tasksuploadImage(data: RequestParams) {
+export function loonoolUploadImage(data: RequestParams) {
     return request({
-        url: `/api/workspaces/${data.workspaceId}/tasks/upload-image`,
+        url: `/loonool/workspaces/tasks/upload-image`,
         method: 'post',
         data,
          headers: {
@@ -58,9 +58,9 @@ export function tasksuploadImage(data: RequestParams) {
 
 //获取工作空间任务列表
 
-export function workspacesTasks(data: RequestParams) {
+export function loonoolWorkspacesTasks(data: RequestParams) {
     return request({
-        url: `/api/workspaces/${data.workspaceId}/tasks`,
+        url: `/loonool/workspaces/tasks/${data.workspaceId}`,
         method: 'get',
         params: data
     })
@@ -70,6 +70,30 @@ export function workspacesTasks(data: RequestParams) {
 export function tasksgetTaskDetail(data: RequestParams) {
     return request({
         url: `/api/workspaces/${data.workspaceId}/tasks/${data.taskId}`,
+        method: 'get',
+        data,
+    })
+}
+
+
+// 分页获取任务评论列表
+export function tasksgetTaskComments(data: RequestParams) {
+    return request({
+        url: `/loonool/workspaces/${data.workspaceId}/tasks/${data.taskId}/comments`,
+        method: 'get',
+        data,
+    })
+}
+
+
+
+
+
+
+// 获取用户的所有工作空间
+export function loonoolWorkspacesMyAll(data: RequestParams) {
+    return request({
+        url: `/loonool/workspaces/my/all`,
         method: 'get',
         data,
     })

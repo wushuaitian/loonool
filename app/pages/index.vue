@@ -15,10 +15,10 @@
                     :class="{ 'menu-active': activeMenu == 'ReviewSpace' }">
                     创建空间
                 </div>
-                <div @click="navigaJump('auditSpace')" class="menu-text"
+                <!-- <div @click="navigaJump('auditSpace')" class="menu-text"
                     :class="{ 'menu-active': activeMenu == 'auditSpace' }">
                     决策空间
-                </div>
+                </div> -->
                   <div @click="navigaJump('mySpace')" class="menu-text"
                     :class="{ 'menu-active': activeMenu == 'mySpace' }">
                     我的空间
@@ -78,10 +78,10 @@
                     :class="{ 'menu-active': activeMenu == 'ReviewSpace' }">
                     创建空间
                 </div>
-                <div @click="handleMobileMenuClick('auditSpace')" class="mobile-menu-item"
+                <!-- <div @click="handleMobileMenuClick('auditSpace')" class="mobile-menu-item"
                     :class="{ 'menu-active': activeMenu == 'auditSpace' }">
                     决策空间
-                </div>
+                </div> -->
                 <!-- <div @click="handleMobileMenuClick('AiTool')" class="mobile-menu-item"
                     :class="{ 'menu-active': activeMenu === 'AiTool' }">
                     检测查重

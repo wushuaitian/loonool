@@ -11,8 +11,8 @@
             <div class="task-create text-12" @click="createTask()">点击创建</div>
           </div>
           <div class="left-invita left-button text-bold-500 text-16">
-            创建任务
-            <div class="invita-create text-12">点击邀请 </div>
+            邀请好友
+            <div class="invita-create text-12" @click="openInviteFriendsDialog">点击邀请 </div>
           </div>
 
         </div>
@@ -26,7 +26,7 @@
             :key="index" @click="taskItemClick(item, index)" :class="index == taskCurrentId ? 'task-item-active' : ''">
             <div class="task-item-title text-16 text-bold-400 flex align-center">
               <img src="/img/introduc-one.png" alt="" class="task-img">
-              <div class="text-14 m-l-10 text-bold-500">LOGO图案 </div>
+              <div class="text-14 m-l-10 text-bold-500">{{item.title}} </div>
             </div>
             <div class="task-item-content">
               <div class="task-item-status m-l-10" :class="getStatusClass(item.status)">
@@ -65,11 +65,11 @@
         <div class="center-comment">
           <div class="comment-top flex justify-between align-center">
             <div class="comment-tab-item flex justify-start ">
-              <span class="tag-item text-bold-500 text-16" @click="commentTab('support')"
+              <span class="tag-item text-bold-500 text-18" @click="commentTab('support')"
                 :class="activeComment === 'support' ? 'tag-item-active' : ''">
                 支持 <span class="text-14" v-show="activeComment == 'support'">11111</span>
               </span>
-              <span class="tag-item text-bold-500 text-16" @click="commentTab('suggestion')"
+              <span class="tag-item text-bold-500 text-18" @click="commentTab('suggestion')"
                 :class="activeComment === 'suggestion' ? 'tag-item-active' : ''">
                 建议 <span class="text-14" v-show="activeComment == 'suggestion'">11111</span>
               </span>
@@ -80,7 +80,11 @@
           <!-- 评论内容 -->
           <div class="comment-content">
             <div class="comment-list">
-              <div class="comment-item flex" v-for="(item, index) in commentList" :key="index">
+              <!-- 暂无评论 -->
+              <div v-if="commentList.length === 0" class="empty-comment flex align-center justify-center">
+                <div class="empty-text text-14 text-gray">暂无评论</div>
+              </div>
+              <div v-else class="comment-item flex" v-for="(item, index) in commentList" :key="index">
                 <div class="comment-avatar">
                   <img :src="item.avatar" alt="" class="avatar-img">
                 </div>
@@ -97,7 +101,12 @@
             <div class="comment-input-wrapper flex align-center">
               <input type="text" class="comment-input flex-1" placeholder="建议必须发表、支持可以发可不发" v-model="commentInput" />
               <div class="comment-send-btn flex align-center justify-center" @click="sendComment">
-                <img src="/img/upload-img.png" alt="发送" class="send-icon">
+                <svg class="send-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M22 2L11 13" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" />
+                  <path d="M22 2L15 22L11 13L2 9L22 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                    stroke-linejoin="round" />
+                </svg>
               </div>
             </div>
           </div>
@@ -113,7 +122,11 @@
             <div class="upload-evidence-btn text-14 text-bold-400" @click="uploadEvidence">上传证据</div>
           </div>
           <div class="evidence-list flex flex-column">
-            <div class="evidence-item flex align-center" v-for="(item, index) in evidenceList" :key="index">
+            <!-- 暂无证据链 -->
+            <div v-if="evidenceList.length === 0" class="empty-evidence flex align-center justify-center">
+              <div class="empty-text text-14 text-gray">暂无证据链</div>
+            </div>
+            <div v-else class="evidence-item flex align-center" v-for="(item, index) in evidenceList" :key="index">
               <div class="evidence-icon-wrapper">
                 <img src="/img/report-img.png" alt="PDF" class="evidence-icon">
               </div>
@@ -140,49 +153,118 @@
     </div>
 
     <!-- 创建任务弹窗 -->
-    <el-dialog v-model="createTaskDialogVisible" title="创建任务" :width="600" :close-on-click-modal="false"
-      class="create-task-dialog">
-      <div class="create-task-content">
+    <div v-if="createTaskDialogVisible" class="modal-overlay" @click.self="closeCreateTaskDialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">创建任务</h2>
+          <button class="modal-close-btn" @click="closeCreateTaskDialog">×</button>
+        </div>
+
         <!-- 标签页 -->
-        <el-tabs v-model="activeTaskTab" class="task-tabs">
-          <el-tab-pane label="图片" name="image"></el-tab-pane>
-          <el-tab-pane label="文案" name="copy"></el-tab-pane>
-          <el-tab-pane label="文档" name="document"></el-tab-pane>
-          <el-tab-pane label="视觉图" name="visual"></el-tab-pane>
-          <el-tab-pane label="UI" name="ui"></el-tab-pane>
-        </el-tabs>
+        <div class="modal-tabs">
+          <div v-for="tab in taskTabs" :key="tab.value" :class="['modal-tab', { active: activeTaskTab === tab.value }]"
+            @click="activeTaskTab = tab.value" class="text-bold-500 text-14">
+            {{ tab.label }}
+          </div>
+        </div>
 
         <!-- 任务名称输入 -->
-        <div class="task-name-section">
-          <label class="task-name-label">任务名称</label>
-          <el-input v-model="taskName" placeholder="请输入任务名称" class="task-name-input" />
+        <div class="modal-form-item flex align-center">
+          <label class="form-label m-r-10 text-bold-500 text-16">任务名称</label>
+          <input v-model="taskName" type="text" class="form-input" placeholder="请输入任务名称" />
         </div>
 
         <!-- 上传区域 -->
-        <div class="task-upload-section">
-          <el-upload class="task-upload" drag :action="uploadAction" :auto-upload="false" :file-list="fileList"
-            :limit="1" :on-change="dialogFileChange">
-            <div class="upload-content">
-              <div class="upload-text">点击上传</div>
+        <div class="modal-upload-section">
+          <div v-if="!uploadedTaskFile" class="modal-upload-area" @click="triggerTaskFileInput">
+            <div class="modal-upload-text">点击上传</div>
+          </div>
+          <div v-else class="modal-upload-preview">
+            <img v-if="isImageFile" :src="uploadedTaskFile" alt="预览" class="modal-preview-image" />
+            <div v-else class="modal-file-info">
+              <span class="modal-file-name">{{ uploadedTaskFileName }}</span>
             </div>
-          </el-upload>
+            <button class="modal-remove-btn" @click="removeTaskFile">×</button>
+          </div>
+          <input ref="taskFileInput" type="file" :accept="getFileAccept()" style="display: none"
+            @change="handleTaskFileUpload" />
+        </div>
+
+        <!-- 操作按钮 -->
+        <div class="modal-actions">
+          <button class="modal-btn modal-btn-cancel" @click="closeCreateTaskDialog">取消</button>
+          <button class="modal-btn modal-btn-confirm" @click="confirmCreateTask">确认</button>
         </div>
       </div>
-
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="closeCreateTaskDialog">取消</el-button>
-          <el-button type="primary" @click="confirmCreateTask">确认</el-button>
+    </div>
+    <!-- 邀请好友弹窗 -->
+    <div v-if="inviteFriendsVisible" class="modal-overlay" @click.self="closeInviteFriendsDialog"
+      @click="activeRoleDropdownIndex = null">
+      <div class="modal-content invite-modal-content">
+        <div class="modal-header">
+          <h2 class="modal-title">邀请好友</h2>
+          <button class="modal-close-btn" @click="closeInviteFriendsDialog">×</button>
         </div>
-      </template>
-    </el-dialog>
+
+        <!-- 现有成员列表 -->
+        <div class="invite-members-section m-auto b-r-8">
+          <div class="members-table">
+            <div class="members-table-header">
+              <div class="table-col-member">成员</div>
+              <div class="table-col-email">邮箱</div>
+              <div class="table-col-role">项目角色</div>
+            </div>
+            <div class="members-table-body">
+              <div class="members-table-row" v-for="(member, index) in membersList" :key="index"
+                :class="{ 'row-selected': selectedMemberIndex === index }">
+                <div class="table-col-member">
+                  <img :src="member.avatar" :alt="member.name" class="member-avatar">
+                  <span class="member-name">{{ member.name }}</span>
+                </div>
+                <div class="table-col-email">{{ member.email }}</div>
+                <div class="table-col-role" v-if="member.canEdit">
+                  <div class="role-select-wrapper" @click.stop="toggleRoleDropdown(index)">
+                    <span class="role-text">{{ member.role }}</span>
+                    <span class="role-dropdown-icon">▼</span>
+                    <div v-if="activeRoleDropdownIndex === index" class="role-dropdown-menu" @click.stop>
+                      <div class="role-dropdown-item" :class="{ 'role-dropdown-item-active': member.role === '项目管理人' }"
+                        @click="updateMemberRole(index, '项目管理人')">
+                        项目管理人
+                      </div>
+                      <div class="role-dropdown-item" :class="{ 'role-dropdown-item-active': member.role === '发言人' }"
+                        @click="updateMemberRole(index, '发言人')">
+                        发言人
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="table-col-role" v-else>
+                  <span class="role-text">{{ member.role }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 新邀请输入区域 -->
+        <div class="invite-input-section">
+          <div class="invite-form-item">
+            <label class="invite-label">邮箱</label>
+            <input v-model="inviteEmail" type="email" class="invite-email-input" placeholder="请输入邮箱号"
+              @keyup.enter="handleInvite" />
+          </div>
+          <button class="invite-btn" @click="handleInvite">立即邀请</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ElMessage } from 'element-plus'
-import { ref, onMounted, watch } from 'vue';
-import { tasksuploadImage, workspacesTasks } from "../../composables/login";
+import { ref, computed, onMounted, watch } from 'vue';
+import { loonoolUploadImage, loonoolWorkspacesTasks, tasksgetTaskComments, tasksgetTaskDetail } from "../../composables/login";
+import { get } from '@nuxt/ui/runtime/utils/index.js';
 
 
 // 定义 props 接收 spaceId
@@ -201,13 +283,32 @@ const props = defineProps({
  * 获取任务列表
  */
 const getTaskList = async () => {
-  const res = await workspacesTasks({
+  console.log(typeof (workspaceId.value), 'ptypeof');
+  const res = await loonoolWorkspacesTasks({
     workspaceId: workspaceId.value
   })
-  console.log(res, 'resresres');
 
   if (res.code == 200) {
-    taskList.value = res.data
+    taskList.value = res.data || []
+    // 如果有任务列表，默认选中最新创建的任务
+    // 如果API返回的是倒序（最新的在前面），则选中第一个（index 0）
+    // 如果API返回的是正序（最新的在后面），则选中最后一个
+    if (taskList.value.length > 0) {
+      // 默认选中最后一个任务（假设新创建的任务会被添加到列表末尾）
+      // 如果API返回的是倒序，可以改为 0
+      const selectedIndex = taskList.value.length - 1
+      taskCurrentId.value = selectedIndex
+      currentTask.value = taskList.value[selectedIndex]
+      // 获取选中任务的评论和证据链
+      await getCommentList()
+      await getEvidenceList()
+    } else {
+      // 没有任务时清空评论和证据链
+      commentList.value = []
+      evidenceList.value = []
+      taskCurrentId.value = null
+      currentTask.value = null
+    }
   }
 }
 
@@ -228,9 +329,15 @@ const getStatusClass = (status) => {
 
 // 任务列表 当前点击
 const taskCurrentId = ref(null)
+// 当前选中的任务对象
+const currentTask = ref(null)
 
-const taskItemClick = (item, index) => {
+const taskItemClick = async (item, index) => {
   taskCurrentId.value = index
+  currentTask.value = item
+  // 切换任务时重新获取评论和证据链
+  await getCommentList()
+  await getEvidenceList()
 }
 
 
@@ -243,14 +350,22 @@ const uploadedImageUrl = ref('')
 const handleFileChange = (file, fileList) => {
   console.log('文件变化:', file, fileList)
   // 生成图片预览URL
-  if (file.raw) {
+  if (file && file.raw) {
+
+    // 如果需要将文件转换为流格式
     const reader = new FileReader()
     reader.onload = (e) => {
-      uploadedImageUrl.value = e.target.result
+      fileStream.value = e.target.result
+      console.log('文件已转换为流:', fileStream.value)
+      loonoolUploadImage({
+        file: fileStream.value,
+        workspaceId: String(workspaceId.value),
+      }).then(res => {
+        getTaskList()
+        console.log(res, 'resresres');
+      })
     }
-    reader.readAsDataURL(file.raw)
-  } else if (file.url) {
-    uploadedImageUrl.value = file.url
+    reader.readAsArrayBuffer(file.raw)
   }
 }
 
@@ -266,33 +381,31 @@ const commentTab = (tab) => {
   activeComment.value = tab
 }
 
-// 评论列表数据
-const commentList = ref([
-  {
-    avatar: '/img/flower.png',
-    name: '负责人',
-    content: '根据对比来思考并不会让人逻辑混乱,因为即使是对比也可以联结称一个和谐的整体。有些概念只有通过它的对立面才能成为现实,比如"上"连着"下","水平"连着"垂直",等等',
-    date: '2025-09-20'
-  },
-  {
-    avatar: '/img/flower.png',
-    name: '负责人',
-    content: '根据对比来思考并不会让人逻辑混乱,因为即使是对比也可以联结称一个和谐的整体。有些概念只有通过它的对立面才能成为现实,比如"上"连着"下","水平"连着"垂直",等等',
-    date: '2025-09-20'
-  },
-  {
-    avatar: '/img/flower.png',
-    name: '负责人',
-    content: '根据对比来思考并不会让人逻辑混乱,因为即使是对比也可以联结称一个和谐的整体。有些概念只有通过它的对立面才能成为现实,比如"上"连着"下","水平"连着"垂直",等等',
-    date: '2025-09-20'
-  },
-  {
-    avatar: '/img/flower.png',
-    name: '负责人',
-    content: '根据对比来思考并不会让人逻辑混乱,因为即使是对比也可以联结称一个和谐的整体。有些概念只有通过它的对立面才能成为现实,比如"上"连着"下","水平"连着"垂直",等等',
-    date: '2025-09-20'
+// 获取评论列表
+const getCommentList = async () => {
+  if (!currentTask.value || !currentTask.value.id) {
+    commentList.value = []
+    return
   }
-])
+  try {
+    const res = await tasksgetTaskComments({
+      workspaceId: workspaceId.value,
+      taskId: currentTask.value.id
+    })
+    console.log(res, '评论列表res');
+    if (res.code == 200) {
+      commentList.value = res.data || []
+    } else {
+      commentList.value = []
+    }
+  } catch (error) {
+    console.error('获取评论列表失败:', error)
+    commentList.value = []
+  }
+}
+
+// 评论列表数据
+const commentList = ref([])
 
 // 评论输入
 const commentInput = ref('')
@@ -306,29 +419,32 @@ const sendComment = () => {
 }
 
 // 右侧
-// 证据链列表
-const evidenceList = ref([
-  {
-    name: '报告1',
-    date: '2025-09-30'
-  },
-  {
-    name: '报告1',
-    date: '2025-09-30'
-  },
-  {
-    name: '报告1',
-    date: '2025-09-30'
-  },
-  {
-    name: '报告1',
-    date: '2025-09-30'
-  },
-  {
-    name: '报告1',
-    date: '2025-09-30'
+// 获取证据链列表
+const getEvidenceList = async () => {
+  if (!currentTask.value || !currentTask.value.id) {
+    evidenceList.value = []
+    return
   }
-])
+  try {
+    const res = await tasksgetTaskDetail({
+      workspaceId: workspaceId.value,
+      taskId: currentTask.value.id
+    })
+    console.log(res, '任务详情res');
+    if (res.code == 200 && res.data) {
+      // 根据实际API返回的数据结构调整，这里假设证据链在evidenceChain字段中
+      evidenceList.value = res.data.evidenceChain || res.data.evidences || []
+    } else {
+      evidenceList.value = []
+    }
+  } catch (error) {
+    console.error('获取证据链失败:', error)
+    evidenceList.value = []
+  }
+}
+
+// 证据链列表
+const evidenceList = ref([])
 
 // 上传证据
 const uploadEvidence = () => {
@@ -366,18 +482,50 @@ const toolClick = (tool, index) => {
 const createTaskDialogVisible = ref(false)
 const activeTaskTab = ref('image')
 const taskName = ref('')
-const fileList = ref([])
-const uploadAction = ref('https://run.mocky.io/v3/9d059bf9-4660-45f2-925d-ce80ad6c4d15')
+const uploadedTaskFile = ref(null)
+const uploadedTaskFileName = ref('')
+const taskFileInput = ref(null)
 const uploadedFile = ref(null) // 存储上传的文件对象
 const fileStream = ref(null)   // 存储文件流
 
+const taskTabs = [
+  { label: '图片', value: 'image' },
+  { label: '文案', value: 'copy' },
+  { label: '文档', value: 'document' },
+  { label: '视觉图', value: 'visual' },
+  { label: 'UI', value: 'ui' }
+]
+
+// 获取文件接受类型
+const getFileAccept = () => {
+  switch (activeTaskTab.value) {
+    case 'image':
+      return 'image/*'
+    case 'document':
+      return '.pdf,.doc,.docx,.txt'
+    default:
+      return '*/*'
+  }
+}
+
+// 判断是否为图片文件
+const isImageFile = computed(() => {
+  if (!uploadedTaskFile.value) return false
+  return uploadedTaskFile.value.startsWith('data:image/')
+})
+
+// 触发文件选择
+const triggerTaskFileInput = () => {
+  taskFileInput.value?.click()
+}
 
 // 打开创建任务弹窗
 const createTask = () => {
   createTaskDialogVisible.value = true
   // 重置表单
   taskName.value = ''
-  fileList.value = []
+  uploadedTaskFile.value = null
+  uploadedTaskFileName.value = ''
   activeTaskTab.value = 'image'
   uploadedFile.value = null
   fileStream.value = null
@@ -386,30 +534,55 @@ const createTask = () => {
 // 关闭创建任务弹窗
 const closeCreateTaskDialog = () => {
   createTaskDialogVisible.value = false
+  // 重置表单
   taskName.value = ''
-  fileList.value = []
+  uploadedTaskFile.value = null
+  uploadedTaskFileName.value = ''
+  activeTaskTab.value = 'image'
   uploadedFile.value = null
   fileStream.value = null
 }
 
-// 文件变化处理
-const dialogFileChange = (file, fileList) => {
-  console.log('文件变化:', file)
-  if (file && file.raw) {
-    uploadedFile.value = file
+// 处理文件上传
+const handleTaskFileUpload = (event) => {
+  const target = event.target
+  const file = target.files?.[0]
 
-    // 创建 FormData 对象用于上传
-    const fileData = new FormData()
-    fileData.append("file", file.raw)
-
-    // 如果需要将文件转换为流格式
+  if (file) {
     const reader = new FileReader()
     reader.onload = (e) => {
-      fileStream.value = e.target.result
+      uploadedTaskFile.value = e.target?.result
+      uploadedTaskFileName.value = file.name
+    }
+
+    if (file.type.startsWith('image/')) {
+      reader.readAsDataURL(file)
+    } else {
+      // 对于非图片文件，可以显示文件名
+      uploadedTaskFile.value = 'file'
+      uploadedTaskFileName.value = file.name
+    }
+
+    // 将文件转换为流格式用于上传
+    const fileReader = new FileReader()
+    fileReader.onload = (e) => {
+      fileStream.value = e.target?.result
+      uploadedFile.value = file
       console.log('文件已转换为流:', fileStream.value)
     }
-    reader.readAsArrayBuffer(file.raw)
+    fileReader.readAsArrayBuffer(file)
+
+    // 重置input
+    target.value = ''
   }
+}
+
+// 移除文件
+const removeTaskFile = () => {
+  uploadedTaskFile.value = null
+  uploadedTaskFileName.value = ''
+  uploadedFile.value = null
+  fileStream.value = null
 }
 
 // 确认创建任务
@@ -419,26 +592,126 @@ const confirmCreateTask = () => {
     return
   }
 
-  tasksuploadImage({
+  if (!fileStream.value) {
+    ElMessage.warning('请上传文件')
+    return
+  }
+
+  loonoolUploadImage({
     file: fileStream.value,
     workspaceId: String(workspaceId.value),
     taskName: taskName.value,
-
-  }).then(res => {
+  }).then(async res => {
     console.log(res, 'resresres');
-
+    if (res.code === 200) {
+      ElMessage.success('任务创建成功')
+      closeCreateTaskDialog()
+      await getTaskList() // 刷新任务列表，会自动选中最新创建的任务
+    }
   })
-  // 这里可以添加创建任务的逻辑
-  console.log('创建任务:', {
-    name: taskName.value,
-    type: activeTaskTab.value,
-    file: fileList.value,
-    fileStream: fileStream.value
-  })
-  ElMessage.success('任务创建成功')
-  // closeCreateTaskDialog()
 }
 
+
+
+// 邀请好友弹窗
+const inviteFriendsVisible = ref(false)
+const inviteEmail = ref('')
+const activeRoleDropdownIndex = ref(null)
+const selectedMemberIndex = ref(null)
+
+// 成员列表数据
+const membersList = ref([
+  {
+    avatar: '/img/flower.png',
+    name: '斯瑶才',
+    email: '87231133@163.com',
+    role: '项目管理人',
+    canEdit: false
+  },
+  {
+    avatar: '/img/flower.png',
+    name: '陈博翰',
+    email: '87231133@163.com',
+    role: '发言人',
+    canEdit: true
+  },
+  {
+    avatar: '/img/flower.png',
+    name: '富珍功',
+    email: '87231133@163.com',
+    role: '项目管理人',
+    canEdit: false
+  },
+  {
+    avatar: '/img/flower.png',
+    name: '艾乐',
+    email: '87231133@163.com',
+    role: '发言人',
+    canEdit: false
+  }
+])
+
+// 切换角色下拉菜单
+const toggleRoleDropdown = (index) => {
+  if (activeRoleDropdownIndex.value === index) {
+    activeRoleDropdownIndex.value = null
+  } else {
+    activeRoleDropdownIndex.value = index
+    selectedMemberIndex.value = index
+  }
+}
+
+// 更新成员角色
+const updateMemberRole = (index, newRole) => {
+  membersList.value[index].role = newRole
+  activeRoleDropdownIndex.value = null
+  // TODO: 调用API更新角色
+  ElMessage.success('角色已更新')
+}
+
+// 打开邀请好友弹窗
+const openInviteFriendsDialog = () => {
+  inviteFriendsVisible.value = true
+  inviteEmail.value = ''
+  activeRoleDropdownIndex.value = null
+  selectedMemberIndex.value = null
+}
+
+// 关闭邀请好友弹窗
+const closeInviteFriendsDialog = () => {
+  inviteFriendsVisible.value = false
+  inviteEmail.value = ''
+  activeRoleDropdownIndex.value = null
+  selectedMemberIndex.value = null
+}
+
+// 处理邀请
+const handleInvite = () => {
+  if (!inviteEmail.value.trim()) {
+    ElMessage.warning('请输入邮箱地址')
+    return
+  }
+
+  // 验证邮箱格式
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  if (!emailRegex.test(inviteEmail.value)) {
+    ElMessage.warning('请输入正确的邮箱格式')
+    return
+  }
+
+  // 检查是否已存在
+  const exists = membersList.value.some(member => member.email === inviteEmail.value)
+  if (exists) {
+    ElMessage.warning('该邮箱已被邀请')
+    return
+  }
+
+  // 执行邀请逻辑
+  console.log('邀请邮箱:', inviteEmail.value)
+  // TODO: 调用邀请API
+  ElMessage.success('邀请已发送')
+  inviteEmail.value = ''
+}
 
 // 空间ID
 const workspaceId = ref(null)
@@ -446,7 +719,7 @@ const workspaceId = ref(null)
 onMounted(async () => {
   if (props.spaceId) {
     console.log('接收到的 spaceId:', props.spaceId)
-    workspaceId.value = props.spaceId
+    workspaceId.value = String(props.spaceId)
     await getTaskList() // 等待任务列表加载完成
     console.log('任务列表加载完成')
   }
@@ -461,721 +734,6 @@ watch(() => props.spaceId, (newId) => {
 }, { immediate: true })
 </script>
 
-<style scoped lang="scss">
-// 颜色变量
-$bg-white: #ffffff;
-$bg-gray-light: #F7F8FA;
-$bg-gray-lighter: #F1F3F5;
-$bg-gray-lightest: #E9ECEF;
-$bg-blue-light: #E9EEFF;
-$bg-blue-lighter: #D4DEFF;
-$bg-blue-lightest: #E9EBFC;
-$color-primary: #2134DE;
-$color-primary-hover: #1a2bb8;
-$color-text: #1D2129;
-$color-text-gray: #4E5969;
-$color-text-light: #85909C;
-$color-text-lighter: #86909C;
-$color-text-lightest: #646E7C;
-$color-progress: #FFAB01;
-$color-completed: #5CD81A;
-$color-incomplete: #FF1B1B;
-$bg-progress: #F8EEDB;
-$bg-completed: #E1F3DB;
-$bg-incomplete: #F8D9DB;
-
-// 滚动条样式混入
-@mixin scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
-}
-
-// 按钮交互混入
-@mixin button-interaction {
-  cursor: pointer;
-  transition: all 0.3s;
-
-  &:hover {
-    background-color: $bg-blue-lighter;
-  }
-
-  &:active {
-    transform: scale(0.95);
-  }
-}
-
-.audit-space-page {
-  min-height: 100vh;
-  width: 100%;
-  background: $bg-white;
-  padding: 20px;
-  font-weight: 400;
-  font-family: PingFangSC, PingFang SC, -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-.container {
-  display: flex;
-  gap: 20px;
-  max-width: 1600px;
-  margin: 0 auto;
-  height: calc(100vh - 40px);
-}
-
-.left-column {
-  width: 350px;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  border-radius: 8px;
-  overflow-y: auto;
-  @include scrollbar;
-
-  .left-top {
-    gap: 10px;
-
-    .left-task {
-      background: linear-gradient(90deg, #CAFFEC 0%, #EDF5FF 34%, #D4F4FF 63%, #D9D7FE 100%);
-
-      .task-create {
-        background: linear-gradient(270deg, rgba(224, 246, 240, 0) 0%, #BDF2E3 100%);
-        color: $color-text-gray;
-        padding: 8px;
-        margin-top: 5px;
-        border-radius: 14px;
-        width: 66px;
-      }
-    }
-
-    .left-invita {
-      background: linear-gradient(134deg, #ECEFFF 0%, #FFECFF 100%);
-
-      .invita-create {
-        background: linear-gradient(270deg, rgba(218, 218, 255, 0) 0%, #DADAFF 100%);
-        color: $color-text-gray;
-        padding: 8px;
-        margin-top: 5px;
-        border-radius: 14px;
-        width: 66px;
-      }
-    }
-
-    .left-button {
-      flex: 1;
-      padding-top: 15px;
-      padding-left: 18px;
-      border-radius: 21px;
-      height: 90px;
-    }
-  }
-
-  .task-list {
-    height: 80vh;
-    gap: 10px;
-
-    // 添加空状态样式
-    .empty-task-list {
-      height: 100%;
-      min-height: 200px;
-
-      .empty-text {
-        color: $color-text-light;
-      }
-    }
-
-    .task-item {
-      background-color: $bg-gray-light;
-      padding: 10px;
-      color: $color-text-lightest;
-    }
-
-    .task-item-title .task-img {
-      width: 40px;
-      height: 40px;
-    }
-
-    .task-item-active {
-      background-color: $bg-blue-light !important;
-      border: 1px solid $color-primary;
-    }
-
-    .task-item-status {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 8px 10px;
-      border-radius: 6px;
-      font-size: 13px;
-      font-weight: 400;
-      white-space: nowrap;
-
-      .status-dot {
-        width: 4px;
-        height: 4px;
-        border-radius: 50%;
-        display: inline-block;
-      }
-
-      .status-text {
-        line-height: 1;
-      }
-
-      &.status-progress {
-        background-color: $bg-progress;
-        color: $color-progress;
-
-        .status-dot {
-          background-color: $color-progress;
-        }
-      }
-
-      &.status-completed {
-        background-color: $bg-completed;
-        color: $color-completed;
-
-        .status-dot {
-          background-color: $color-completed;
-        }
-      }
-
-      &.status-incomplete {
-        background-color: $bg-incomplete;
-        color: $color-incomplete;
-
-        .status-dot {
-          background-color: $color-incomplete;
-        }
-      }
-    }
-  }
-}
-
-.center-column {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  overflow-y: auto;
-  @include scrollbar;
-
-  .center-top {
-    flex: 0.7;
-    min-height: 0;
-
-    .upload-demo {
-      width: 100%;
-      height: 100%;
-      display: flex;
-      flex-direction: column;
-
-      .el-upload__text {
-        color: $color-text-light;
-      }
-
-      :deep(.el-upload),
-      :deep(.el-upload-dragger) {
-        width: 100%;
-        height: 100%;
-      }
-
-      :deep(.el-upload-dragger) {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        border-radius: 14px;
-      }
-    }
-
-    .upload-img {
-      width: 93px;
-      height: 67px;
-    }
-
-    .display-img {
-      height: 100%;
-      background-color: #F7F8FA;
-      border-radius: 8px;
-      position: relative;
-
-      .img-wrapper {
-        position: relative;
-        width: 100%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-      }
-
-      .img-center {
-        width: auto;
-        max-width: 65%;
-        height: 100%;
-        margin: auto;
-      }
-
-      .delete-btn {
-        position: absolute;
-        top: 10px;
-        right: 10px;
-        width: 32px;
-        height: 32px;
-        background-color: rgba(0, 0, 0, 0.5);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all 0.3s;
-        z-index: 10;
-
-        &:hover {
-          background-color: rgba(0, 0, 0, 0.7);
-          transform: scale(1.1);
-        }
-
-        .delete-icon {
-          color: #ffffff;
-          font-size: 24px;
-          font-weight: bold;
-          line-height: 1;
-          user-select: none;
-        }
-      }
-    }
-  }
-
-  .center-comment {
-    flex: 1.3;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-
-    .comment-top {
-      .comment-tab-item {
-        gap: 30px;
-        padding: 20px 0;
-
-        .tag-item {
-          transition: color 0.2s;
-          position: relative;
-          color: $color-text-light;
-        }
-
-        .tag-item-active {
-          color: $color-primary;
-          border-bottom: 4px solid $color-primary;
-        }
-      }
-
-      .comment-time {
-        color: $color-text-light;
-      }
-    }
-
-    .comment-content {
-      background-color: $bg-gray-light;
-      border-radius: 20px;
-      min-height: 50px;
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-      max-height: calc(100vh - 400px);
-      overflow-y: auto;
-
-      .comment-list {
-        display: flex;
-        flex-direction: column;
-        gap: 20px;
-        flex: 1;
-        overflow-y: auto;
-
-        .comment-item {
-          gap: 15px;
-          padding-bottom: 20px;
-
-          &:last-child {
-            border-bottom: none;
-            padding-bottom: 0;
-          }
-
-          .comment-avatar {
-            width: 60px;
-            height: 60px;
-            min-width: 60px;
-            border-radius: 50%;
-            overflow: hidden;
-            background-color: $bg-gray-lightest;
-
-            .avatar-img {
-              width: 100%;
-              height: 100%;
-              border-radius: 50%;
-            }
-          }
-
-          .comment-info {
-            min-width: 0;
-
-            .comment-header {
-              .comment-name {
-                color: $color-text;
-              }
-
-              .comment-date {
-                color: $color-text-lighter;
-                white-space: nowrap;
-              }
-            }
-
-            .comment-text {
-              color: $color-text;
-              line-height: 1.6;
-              word-break: break-word;
-              white-space: pre-wrap;
-            }
-          }
-        }
-      }
-
-      .comment-input-wrapper {
-        background-color: $bg-white;
-        border-radius: 24px;
-        padding: 8px 10px;
-        gap: 12px;
-        margin-top: auto;
-
-        .comment-input {
-          border: none;
-          outline: none;
-          background: transparent;
-          font-size: 14px;
-          color: $color-text;
-          padding: 0;
-
-          &::placeholder {
-            color: $color-text-lighter;
-          }
-        }
-
-        .comment-send-btn {
-          width: 40px;
-          height: 40px;
-          min-width: 40px;
-          background-color: $color-primary;
-          border-radius: 50%;
-          @include button-interaction;
-
-          &:hover {
-            background-color: $color-primary-hover;
-            transform: scale(1.05);
-          }
-
-          .send-icon {
-            width: 20px;
-            height: 20px;
-          }
-        }
-      }
-    }
-  }
-}
-
-.right-column {
-  width: 320px;
-  display: flex;
-  flex-direction: column;
-  gap: 30px;
-  overflow-y: auto;
-  padding-right: 10px;
-  padding-bottom: 40px;
-  @include scrollbar;
-
-  .evidence-chain {
-    flex: 0.5;
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    background-color: $bg-gray-light;
-    padding: 10px 12px;
-    border-radius: 10px;
-
-    .evidence-header {
-      margin-bottom: 20px;
-
-      .evidence-title {
-        color: $color-text;
-      }
-
-      .upload-evidence-btn {
-        color: $color-primary;
-        background-color: $bg-blue-light;
-        padding: 8px 16px;
-        border-radius: 16px;
-        @include button-interaction;
-      }
-    }
-
-    .evidence-list {
-      flex: 1;
-      overflow-y: auto;
-      gap: 8px;
-
-      .evidence-item {
-        padding: 3px 10px;
-        background-color: $bg-white;
-        border-radius: 12px;
-        transition: all 0.3s;
-
-        &:hover {
-          background-color: $bg-gray-light;
-        }
-
-        .evidence-icon-wrapper {
-          width: 40px;
-          height: 40px;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          position: relative;
-
-          &.dashed::after {
-            border: 1px dashed #DDD;
-            border-radius: 8px;
-          }
-
-          .evidence-icon {
-            width: 32px;
-            height: 32px;
-          }
-        }
-
-        .evidence-info {
-          min-width: 0;
-          position: relative;
-          padding: 4px 5px;
-
-          &.dashed::after {
-            border: 1px dashed #DDD;
-            border-radius: 4px;
-          }
-
-          .evidence-name {
-            color: $color-text;
-            margin-bottom: 4px;
-          }
-
-          .evidence-date {
-            color: $color-text-lighter;
-          }
-        }
-
-        .evidence-share-btn {
-          color: $color-text-gray;
-          background-color: $bg-gray-light;
-          padding: 6px 14px;
-          border-radius: 6px;
-          white-space: nowrap;
-          @include button-interaction;
-        }
-      }
-    }
-  }
-
-  .tools-section {
-    flex: 0.7;
-    min-height: 0;
-    padding: 18px 20px;
-    background-color: $bg-gray-light;
-    border-radius: 12px;
-
-    .tools-title {
-      color: $color-text;
-      margin-bottom: 20px;
-    }
-
-    .tools-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-
-      .tool-item {
-        aspect-ratio: 1;
-        background-color: $bg-gray-lighter;
-        border-radius: 8px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all 0.3s;
-        min-height: 0;
-
-        &:hover {
-          background-color: $bg-gray-lightest;
-        }
-
-        .tool-icon {
-          width: 40px;
-          height: 40px;
-        }
-      }
-    }
-  }
-}
-
-::v-deep .el-upload-dragger:hover {
-  background: $bg-blue-lightest;
-  border: 1px dashed $color-primary !important;
-}
-
-// 创建任务弹窗样式
-:deep(.create-task-dialog) {
-  .el-dialog__header {
-    padding: 20px 20px 10px;
-    border-bottom: none;
-
-    .el-dialog__title {
-      font-size: 16px;
-      font-weight: 500;
-      color: $color-text;
-    }
-  }
-
-  .el-dialog__body {
-    padding: 20px;
-  }
-
-  .el-dialog__footer {
-    padding: 10px 20px 20px;
-    border-top: none;
-  }
-}
-
-.create-task-content {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-
-  .task-tabs {
-    :deep(.el-tabs__header) {
-      margin: 0 0 10px 0;
-    }
-
-    :deep(.el-tabs__nav-wrap::after) {
-      display: none;
-    }
-
-    :deep(.el-tabs__item) {
-      padding: 0 20px;
-      font-size: 14px;
-      color: $color-text-light;
-      height: 40px;
-      line-height: 40px;
-
-      &.is-active {
-        color: $color-primary;
-        font-weight: 500;
-      }
-    }
-
-    :deep(.el-tabs__active-bar) {
-      background-color: $color-primary;
-    }
-  }
-
-  .task-name-section {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-
-    .task-name-label {
-      font-size: 14px;
-      color: $color-text;
-      font-weight: 400;
-    }
-
-    .task-name-input {
-      :deep(.el-input__wrapper) {
-        border-radius: 8px;
-        background-color: $bg-gray-light;
-        box-shadow: none;
-        padding: 0 15px;
-
-        &:hover {
-          box-shadow: none;
-        }
-
-        &.is-focus {
-          box-shadow: 0 0 0 1px $color-primary inset;
-        }
-      }
-
-      :deep(.el-input__inner) {
-        height: 40px;
-        line-height: 40px;
-        color: $color-text;
-
-        &::placeholder {
-          color: $color-text-lighter;
-        }
-      }
-    }
-  }
-
-  .task-upload-section {
-    .task-upload {
-      width: 100%;
-
-      :deep(.el-upload) {
-        width: 100%;
-      }
-
-      :deep(.el-upload-dragger) {
-        width: 100%;
-        height: 200px;
-        border-radius: 8px;
-        background-color: $bg-gray-light;
-        border: 1px dashed $bg-gray-lightest;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all 0.3s;
-
-        &:hover {
-          background-color: $bg-gray-lighter;
-          border-color: $color-primary;
-        }
-      }
-
-      .upload-content {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        width: 100%;
-        height: 100%;
-
-        .upload-text {
-          font-size: 14px;
-          color: $color-text-lighter;
-          margin-top: 10px;
-        }
-      }
-    }
-  }
-}
-
-.dialog-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 10px;
-
-  .el-button {
-    padding: 10px 20px;
-    border-radius: 6px;
-  }
-}
+<style lang="scss">
+@use "../../public/auditSpace.scss";
 </style>

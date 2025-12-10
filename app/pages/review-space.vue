@@ -30,7 +30,7 @@ import { ref } from 'vue';
 
 // 空间名称输入框
 const spaceName = ref('')
-const emit = defineEmits(['spaceCreated']); // 添加这一行
+const emit = defineEmits(['spaceCreated']); 
 
 
 // 输入框聚焦事件
@@ -62,7 +62,7 @@ const enterSpace = () => {
         console.error(err);
         // 显示错误提示
         const errorMsg = err?.response?.data?.message || err?.message || '创建失败，请稍后重试';
-        ElMessage.error(errorMsg);
+        // ElMessage.error(errorMsg);
     })
 
     console.log('进入空间:', spaceName.value)
