@@ -18,8 +18,12 @@
         </div>
         <!-- 任务列表 -->
         <div class="task-list flex flex-column">
-          <div class="task-item b-r-8 flex justify-between align-center" v-for="(item, index) in taskList" :key="index"
-            @click="taskItemClick(item, index)" :class="index == taskCurrentId ? 'task-item-active' : ''">
+          <!-- 任务列表为空时显示 -->
+          <div v-if="taskList.length === 0" class="empty-task-list flex align-center justify-center">
+            <div class="empty-text text-16 text-gray">暂无任务</div>
+          </div>
+          <div v-else class="task-item b-r-8 flex justify-between align-center" v-for="(item, index) in taskList"
+            :key="index" @click="taskItemClick(item, index)" :class="index == taskCurrentId ? 'task-item-active' : ''">
             <div class="task-item-title text-16 text-bold-400 flex align-center">
               <img src="/img/introduc-one.png" alt="" class="task-img">
               <div class="text-14 m-l-10 text-bold-500">LOGO图案 </div>
@@ -198,10 +202,10 @@ const props = defineProps({
  */
 const getTaskList = async () => {
   const res = await workspacesTasks({
-    workspaceId: localStorage.getItem("workspaceId")
+    workspaceId: workspaceId.value
   })
-  console.log(res,'resresres');
-  
+  console.log(res, 'resresres');
+
   if (res.code == 200) {
     taskList.value = res.data
   }
@@ -209,25 +213,7 @@ const getTaskList = async () => {
 
 
 // 任务列表
-const taskList = ref([
-  {
-    name: '任务',
-    status: '进行中'
-  },
-  {
-    name: '任务',
-    status: '已完成'
-  }, {
-    name: '任务',
-    status: '未完成'
-  }, {
-    name: '任务',
-    status: '进行中'
-  }, {
-    name: '任务',
-    status: '进行中'
-  },
-])
+const taskList = ref([])
 
 // 获取状态样式类
 const getStatusClass = (status) => {
@@ -457,12 +443,12 @@ const confirmCreateTask = () => {
 // 空间ID
 const workspaceId = ref(null)
 
-onMounted(() => {
+onMounted(async () => {
   if (props.spaceId) {
     console.log('接收到的 spaceId:', props.spaceId)
     workspaceId.value = props.spaceId
-
-    getTaskList()
+    await getTaskList() // 等待任务列表加载完成
+    console.log('任务列表加载完成')
   }
 })
 
@@ -586,6 +572,16 @@ $bg-incomplete: #F8D9DB;
   .task-list {
     height: 80vh;
     gap: 10px;
+
+    // 添加空状态样式
+    .empty-task-list {
+      height: 100%;
+      min-height: 200px;
+
+      .empty-text {
+        color: $color-text-light;
+      }
+    }
 
     .task-item {
       background-color: $bg-gray-light;

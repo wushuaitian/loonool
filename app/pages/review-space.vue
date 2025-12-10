@@ -30,6 +30,8 @@ import { ref } from 'vue';
 
 // 空间名称输入框
 const spaceName = ref('')
+const emit = defineEmits(['spaceCreated']); // 添加这一行
+
 
 // 输入框聚焦事件
 const inputFocus = () => {
