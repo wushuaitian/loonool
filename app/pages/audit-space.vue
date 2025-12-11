@@ -30,7 +30,7 @@
             <div class="task-item-content">
               <div class="task-item-status m-l-10" :class="getStatusClass(item.status)">
                 <span class="status-dot"></span>
-                <span class="status-text">{{ item.status }}</span>
+                <span class="status-text">{{ getStatusText(item.status) }}</span>
               </div>
             </div>
           </div>
@@ -66,11 +66,11 @@
             <div class="comment-tab-item flex justify-start ">
               <span class="tag-item text-bold-500 text-18" @click="commentTab('support')"
                 :class="activeComment === 'support' ? 'tag-item-active' : ''">
-                支持 <span class="text-14" v-show="activeComment == 'support'">11111</span>
+                支持 <span class="text-14" v-show="activeComment == 'support'">{{ currentCommentQuantity }}</span>
               </span>
               <span class="tag-item text-bold-500 text-18" @click="commentTab('suggestion')"
                 :class="activeComment === 'suggestion' ? 'tag-item-active' : ''">
-                建议 <span class="text-14" v-show="activeComment == 'suggestion'">11111</span>
+                建议 <span class="text-14" v-show="activeComment == 'suggestion'">{{ currentCommentQuantity }}</span>
               </span>
             </div>
             <div class="comment-time text-14 text-14">任务结束时间: <span class="m-l-5 ">2025-09-23</span></div>
@@ -85,12 +85,14 @@
               </div>
               <div v-else class="comment-item flex" v-for="(item, index) in commentList" :key="index">
                 <div class="comment-avatar">
-                  <img :src="item.avatar" alt="" class="avatar-img">
+                  <img src="/img/logo.png" alt="" class="avatar-img">
+
+                  <!-- <img :src="item.avatarUrl" alt="" class="avatar-img"> -->
                 </div>
                 <div class="comment-info flex-1">
                   <div class="comment-header flex justify-between align-center">
-                    <div class="comment-name text-16 text-bold-500">{{ item.name }}</div>
-                    <div class="comment-date text-14 text-gray">{{ item.date }}</div>
+                    <div class="comment-name text-16 text-bold-500">{{ item.authorName || '昵称' }}</div>
+                    <div class="comment-date text-14 text-gray">{{ formatDate(item.createdAt) }}</div>
                   </div>
                   <div class="comment-text text-14 text-black m-t-10">{{ item.content }}</div>
                 </div>
@@ -217,28 +219,27 @@
               <div class="members-table-row" v-for="(member, index) in membersList" :key="index"
                 :class="{ 'row-selected': selectedMemberIndex === index }">
                 <div class="table-col-member">
-                  <img :src="member.avatar" :alt="member.name" class="member-avatar">
+                  <img :src="member.avatarUrl" :alt="member.name" class="member-avatar">
                   <span class="member-name">{{ member.name }}</span>
                 </div>
                 <div class="table-col-email">{{ member.email }}</div>
-                <div class="table-col-role" v-if="member.canEdit">
+                <div class="table-col-role">
                   <div class="role-select-wrapper" @click.stop="toggleRoleDropdown(index)">
-                    <span class="role-text">{{ member.role }}</span>
+                    <span class="role-text">{{ getRoleDisplayName(member.role) }}</span>
                     <span class="role-dropdown-icon">▼</span>
                     <div v-if="activeRoleDropdownIndex === index" class="role-dropdown-menu" @click.stop>
-                      <div class="role-dropdown-item" :class="{ 'role-dropdown-item-active': member.role === '项目管理人' }"
-                        @click="updateMemberRole(index, '项目管理人')">
-                        项目管理人
+                      <div class="role-dropdown-item"
+                        :class="{ 'role-dropdown-item-active': member.role === 'admin' || member.role === '项目管理人' }"
+                        @click="updateMemberRole(index, 'admin')">
+                        项目管理人员
                       </div>
-                      <div class="role-dropdown-item" :class="{ 'role-dropdown-item-active': member.role === '发言人' }"
-                        @click="updateMemberRole(index, '发言人')">
+                      <div class="role-dropdown-item"
+                        :class="{ 'role-dropdown-item-active': member.role === 'member' || member.role === '发言人' }"
+                        @click="updateMemberRole(index, 'member')">
                         发言人
                       </div>
                     </div>
                   </div>
-                </div>
-                <div class="table-col-role" v-else>
-                  <span class="role-text">{{ member.role }}</span>
                 </div>
               </div>
             </div>
@@ -268,7 +269,8 @@ import {
   tasksgetTaskComments,
   tasksgetTaskDetail,
   taskscreateTaskComment,
-  loonoolWorkspacesMembers
+  loonoolWorkspacesMembers,
+  tasksMembersinvite
 } from "../../composables/login";
 
 // 定义 props 接收 spaceId
@@ -282,7 +284,6 @@ const props = defineProps({
 
 
 // 左侧
-
 /**
  * 获取任务列表
  */
@@ -323,13 +324,33 @@ const getTaskList = async () => {
 const taskList = ref([])
 
 // 获取状态样式类
+// status-progress -> pending (待处理)
+// status-completed -> processing (处理中)
+// status-incomplete -> completed (已完成)
 const getStatusClass = (status) => {
-  if (status === '已完成') {
+  if (status === 'pending') {
+    return 'status-progress'
+  } else if (status === 'processing') {
     return 'status-completed'
-  } else if (status === '未完成') {
+  } else if (status === 'completed') {
     return 'status-incomplete'
   } else {
+    // 兼容旧数据，默认返回 status-progress
     return 'status-progress'
+  }
+}
+
+// 获取状态中文文本
+const getStatusText = (status) => {
+  if (status === 'pending') {
+    return '待处理'
+  } else if (status === 'processing') {
+    return '处理中'
+  } else if (status === 'completed') {
+    return '已完成'
+  } else {
+    // 兼容旧数据，默认返回待处理
+    return '待处理'
   }
 }
 
@@ -347,6 +368,8 @@ const taskItemClick = async (item, index) => {
 }
 
 
+
+
 // 中间
 
 // 上传的图片URL
@@ -356,8 +379,16 @@ const uploadedImageUrl = ref('')
 const handleFileChange = (file, fileList) => {
   console.log('文件变化:', file, fileList)
   // 生成图片预览URL
+  if (file.raw) {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      uploadedImageUrl.value = e.target.result
+    }
+    reader.readAsDataURL(file.raw)
+  } else if (file.url) {
+    uploadedImageUrl.value = file.url
+  }
   if (file && file.raw) {
-
     // 如果需要将文件转换为流格式
     const reader = new FileReader()
     reader.onload = (e) => {
@@ -382,13 +413,16 @@ const removeImage = () => {
 
 // 当前评论选择
 const activeComment = ref('support')
+// 当前评论数量
+const currentCommentQuantity = ref('')
 
-const commentTab = (tab) => {
+const commentTab = async (tab) => {
   activeComment.value = tab
+  await getCommentList()
 }
 
 // 获取评论列表
-const getCommentList = () => {
+const getCommentList = async () => {
   if (!currentTask.value || !currentTask.value.taskId) {
     commentList.value = []
     return
@@ -396,14 +430,15 @@ const getCommentList = () => {
   console.log(activeComment.value, 'activeComment.valueactiveComment.valueactiveComment.value');
 
   try {
-    const res = tasksgetTaskComments({
+    const res = await tasksgetTaskComments({
       workspaceId: workspaceId.value,
       taskId: currentTask.value.taskId,
       commentType: activeComment.value
     })
-    console.log(res, '评论列表res');
+    console.log(res.code, '评论列表res');
     if (res.code == 200) {
-      commentList.value = res.data.page.page || []
+      commentList.value = res.data.page.records || []
+      currentCommentQuantity.value = res.data.page.total
     } else {
       commentList.value = []
     }
@@ -642,36 +677,17 @@ const activeRoleDropdownIndex = ref(null)
 const selectedMemberIndex = ref(null)
 
 // 成员列表数据
-const membersList = ref([
-  {
-    avatar: '/img/flower.png',
-    name: '斯瑶才',
-    email: '87231133@163.com',
-    role: '项目管理人',
-    canEdit: false
-  },
-  {
-    avatar: '/img/flower.png',
-    name: '陈博翰',
-    email: '87231133@163.com',
-    role: '发言人',
-    canEdit: true
-  },
-  {
-    avatar: '/img/flower.png',
-    name: '富珍功',
-    email: '87231133@163.com',
-    role: '项目管理人',
-    canEdit: false
-  },
-  {
-    avatar: '/img/flower.png',
-    name: '艾乐',
-    email: '87231133@163.com',
-    role: '发言人',
-    canEdit: false
-  }
-])
+const membersList = ref([])
+
+// 获取空间成员列表
+const getSpaceMembers = async () => {
+  const res = await loonoolWorkspacesMembers({
+    workspaceId: workspaceId.value,
+  })
+  membersList.value = res.data
+
+
+}
 
 // 切换角色下拉菜单
 const toggleRoleDropdown = (index) => {
@@ -681,6 +697,16 @@ const toggleRoleDropdown = (index) => {
     activeRoleDropdownIndex.value = index
     selectedMemberIndex.value = index
   }
+}
+
+// 获取角色显示名称
+const getRoleDisplayName = (role) => {
+  if (role === 'admin' || role === '项目管理人') {
+    return '项目管理人员'
+  } else if (role === 'member' || role === '发言人') {
+    return '发言人'
+  }
+  return role || '未设置'
 }
 
 // 更新成员角色
@@ -730,9 +756,18 @@ const handleInvite = () => {
 
   // 执行邀请逻辑
   console.log('邀请邮箱:', inviteEmail.value)
-  // TODO: 调用邀请API
-  ElMessage.success('邀请已发送')
-  inviteEmail.value = ''
+  tasksMembersinvite({
+    email: inviteEmail.value,
+    role: 'member',
+    workspaceId: workspaceId.value
+  }).then(res => {
+    if (res.code == 200) {
+      ElMessage.success('邀请已发送')
+      inviteEmail.value = ''
+    }
+  }).catch(err => {
+    ElMessage.error(err.message);
+  })
 }
 
 // 空间ID
@@ -742,7 +777,10 @@ onMounted(async () => {
   if (props.spaceId) {
     console.log('接收到的 spaceId:', props.spaceId)
     workspaceId.value = String(props.spaceId)
-    await getTaskList() // 等待任务列表加载完成
+    // 等待任务列表加载完成
+    await getTaskList()
+    // 获取空间成员列表
+    await getSpaceMembers()
     console.log('任务列表加载完成')
   }
 })
@@ -754,6 +792,17 @@ watch(() => props.spaceId, (newId) => {
     // 这里可以根据 spaceId 加载相关数据
   }
 }, { immediate: true })
+
+
+// 添加日期格式化函数
+const formatDate = (dateString) => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 </script>
 
 <style lang="scss">

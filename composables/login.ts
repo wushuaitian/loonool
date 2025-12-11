@@ -116,3 +116,11 @@ export function loonoolWorkspacesMembers(data: RequestParams) {
         params: data,
     })
 }
+// 邀请成员进入工作空间
+export function tasksMembersinvite(data: RequestParams) {
+    return request({
+        url: `/loonool/workspaces/${data.workspaceId}/invite`,
+        method: 'post',
+        data,
+    })
+}
