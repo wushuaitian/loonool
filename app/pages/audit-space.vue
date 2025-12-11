@@ -14,7 +14,6 @@
             邀请好友
             <div class="invita-create text-12" @click="openInviteFriendsDialog">点击邀请 </div>
           </div>
-
         </div>
         <!-- 任务列表 -->
         <div class="task-list flex flex-column">
@@ -26,7 +25,7 @@
             :key="index" @click="taskItemClick(item, index)" :class="index == taskCurrentId ? 'task-item-active' : ''">
             <div class="task-item-title text-16 text-bold-400 flex align-center">
               <img src="/img/introduc-one.png" alt="" class="task-img">
-              <div class="text-14 m-l-10 text-bold-500">{{item.title}} </div>
+              <div class="text-14 m-l-10 text-bold-500">{{ item.title }} </div>
             </div>
             <div class="task-item-content">
               <div class="task-item-status m-l-10" :class="getStatusClass(item.status)">
@@ -263,9 +262,14 @@
 <script setup>
 import { ElMessage } from 'element-plus'
 import { ref, computed, onMounted, watch } from 'vue';
-import { loonoolUploadImage, loonoolWorkspacesTasks, tasksgetTaskComments, tasksgetTaskDetail } from "../../composables/login";
-import { get } from '@nuxt/ui/runtime/utils/index.js';
-
+import {
+  loonoolUploadImage,
+  loonoolWorkspacesTasks,
+  tasksgetTaskComments,
+  tasksgetTaskDetail,
+  taskscreateTaskComment,
+  loonoolWorkspacesMembers
+} from "../../composables/login";
 
 // 定义 props 接收 spaceId
 const props = defineProps({
@@ -299,9 +303,11 @@ const getTaskList = async () => {
       const selectedIndex = taskList.value.length - 1
       taskCurrentId.value = selectedIndex
       currentTask.value = taskList.value[selectedIndex]
+      console.log(taskList.value[selectedIndex], 'taskList.value[selectedIndex]');
+
       // 获取选中任务的评论和证据链
       await getCommentList()
-      await getEvidenceList()
+      // await getEvidenceList()
     } else {
       // 没有任务时清空评论和证据链
       commentList.value = []
@@ -337,7 +343,7 @@ const taskItemClick = async (item, index) => {
   currentTask.value = item
   // 切换任务时重新获取评论和证据链
   await getCommentList()
-  await getEvidenceList()
+  // await getEvidenceList()
 }
 
 
@@ -382,19 +388,22 @@ const commentTab = (tab) => {
 }
 
 // 获取评论列表
-const getCommentList = async () => {
-  if (!currentTask.value || !currentTask.value.id) {
+const getCommentList = () => {
+  if (!currentTask.value || !currentTask.value.taskId) {
     commentList.value = []
     return
   }
+  console.log(activeComment.value, 'activeComment.valueactiveComment.valueactiveComment.value');
+
   try {
-    const res = await tasksgetTaskComments({
+    const res = tasksgetTaskComments({
       workspaceId: workspaceId.value,
-      taskId: currentTask.value.id
+      taskId: currentTask.value.taskId,
+      commentType: activeComment.value
     })
     console.log(res, '评论列表res');
     if (res.code == 200) {
-      commentList.value = res.data || []
+      commentList.value = res.data.page.page || []
     } else {
       commentList.value = []
     }
@@ -413,22 +422,35 @@ const commentInput = ref('')
 const sendComment = () => {
   if (commentInput.value.trim()) {
     // 发送评论逻辑
-    console.log('发送评论:', commentInput.value)
-    commentInput.value = ''
+    console.log('发送评论:', commentInput.value, currentTask.value)
+    taskscreateTaskComment({
+      workspaceId: workspaceId.value,
+      taskId: currentTask.value.taskId,
+      content: commentInput.value,
+      commentType: activeComment.value
+    }).then(res => {
+      if (res.code == 200) {
+        ElMessage.success(res.message);
+        getCommentList()
+        commentInput.value = ''
+
+      }
+
+    })
   }
 }
 
 // 右侧
 // 获取证据链列表
 const getEvidenceList = async () => {
-  if (!currentTask.value || !currentTask.value.id) {
+  if (!currentTask.value || !currentTask.value.taskId) {
     evidenceList.value = []
     return
   }
   try {
     const res = await tasksgetTaskDetail({
       workspaceId: workspaceId.value,
-      taskId: currentTask.value.id
+      taskId: currentTask.value.taskId
     })
     console.log(res, '任务详情res');
     if (res.code == 200 && res.data) {

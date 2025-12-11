@@ -62,7 +62,7 @@ export function loonoolWorkspacesTasks(data: RequestParams) {
     return request({
         url: `/loonool/workspaces/tasks/${data.workspaceId}`,
         method: 'get',
-        params: data
+        params: data,
     })
 }
 
@@ -71,7 +71,7 @@ export function tasksgetTaskDetail(data: RequestParams) {
     return request({
         url: `/api/workspaces/${data.workspaceId}/tasks/${data.taskId}`,
         method: 'get',
-        data,
+        params: data,
     })
 }
 
@@ -81,6 +81,15 @@ export function tasksgetTaskComments(data: RequestParams) {
     return request({
         url: `/loonool/workspaces/${data.workspaceId}/tasks/${data.taskId}/comments`,
         method: 'get',
+        params: data,
+    })
+}
+
+// 创建任务评论
+export function taskscreateTaskComment(data: RequestParams) {
+    return request({
+        url: `/loonool/workspaces/${data.workspaceId}/tasks/${data.taskId}/comments`,
+        method: 'post',
         data,
     })
 }
@@ -95,6 +104,15 @@ export function loonoolWorkspacesMyAll(data: RequestParams) {
     return request({
         url: `/loonool/workspaces/my/all`,
         method: 'get',
-        data,
+        params: data,
+    })
+}
+
+// 获取工作空间成员列表
+export function loonoolWorkspacesMembers(data: RequestParams) {
+    return request({
+        url: `/loonool/workspaces/${data.workspaceId}/members`,
+        method: 'get',
+        params: data,
     })
 }
