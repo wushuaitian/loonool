@@ -36,8 +36,35 @@
                     帮助中心
                 </div>
             </div>
+			
+			
             <!-- 登录按钮/用户头像 -->
             <div class="naviga-button flex align-center">
+                <div  v-if="isLoggedIn">
+                    <el-dropdown trigger="click" max-height="400" @visible-change="handleMsgDropdownVisibleChange">
+                        <div class="iconBox" @click="msgApi">
+                            <img src="/img/msg.png" alt="" class="msg-img">
+                            <span v-if="hasNewMessage" class="msg-badge"></span>
+                        </div>
+                        <template #dropdown>
+                        <el-dropdown-menu class="msg-dropdown-menu">
+                            <template v-if="msgApiList.length === 0">
+                                <div class="msg-empty">
+                                    <div class="msg-empty-text">消息为空</div>
+                                </div>
+                            </template>
+                            
+
+                            <el-dropdown-item v-else class="msg-item" v-for="(item,index) in msgApiList" :key="index">
+                                    <img src="/img/msg.png" alt="" class="msg-item-img">
+                                    <div class="msg-text">{{item.workspaceName}}</div>
+                                    <div class="msg-time">{{formatDateTime(item.createdAt)}}</div>
+                             </el-dropdown-item>
+                            
+                        </el-dropdown-menu>
+                        </template>
+                    </el-dropdown>
+			    </div>
                 <div v-if="!isLoggedIn" class="flex align-center">
                     <div class="loin m-r-10 text-bold-500" @click="loginOpen('login')">登录</div>
                     <div class="sign text-bold-500" @click="loginOpen('register')">注册</div>
@@ -48,6 +75,7 @@
                         class="h-40 w-40">
 
                     <div v-if="userMenuOpen" class="user-menu">
+                        <div class="user-menu-item" @click="navigaJump('userProfile')">查看信息</div>
                         <div class="user-menu-item" @click="handleLogout">退出登录</div>
                     </div>
                 </div>
@@ -150,6 +178,8 @@ import Article from "./blog/index.vue";
 import problem from "./problem.vue";
 // 我的工具
 import mySpace from "./my-space.vue";
+// 个人信息页
+import userProfile from "./user-profile.vue";
 
 // 工具页 ai生成
 import AiTool from "./tool-ai.vue";
@@ -157,14 +187,193 @@ import AiTool from "./tool-ai.vue";
 import ReviewSpace from "./review-space.vue";
 // 审核空间页 ai生成
 import auditSpace from "./audit-space.vue";
-
+// icon
+import { Bell } from '@element-plus/icons-vue'
 
 
 import {
     loonoolUserRegister,
     loonoolUserLogin
 } from "../../composables/login.ts";
+import {
+    msgList
+} from "../../composables/msg.ts";
 import { ElMessage } from 'element-plus';
+//消息列表
+const msgApiList = reactive([]);
+
+// 是否有新消息提示
+const hasNewMessage = ref(false);
+
+// SSE 连接实例
+let eventSource = null;
+
+// 初始化 SSE 消息连接
+const initSSEMsg = () => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        console.warn('未找到 token，无法建立 SSE 连接');
+        return;
+    }
+
+    // 如果已有连接，先关闭
+    if (eventSource) {
+        eventSource.close();
+        eventSource = null;
+    }
+
+    // SSE 服务器地址（根据实际情况修改）
+    const sseUrl = 'http://192.168.0.77:8080/loonool/notifications/stream';
+    
+    try {
+        // 创建 EventSource 连接
+        // 注意：EventSource 不支持自定义请求头，token 需要通过 URL 参数传递
+        const urlWithToken = `${sseUrl}?token=${encodeURIComponent(token)}`;
+        eventSource = new EventSource(urlWithToken);
+        
+        // 监听消息事件
+        eventSource.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                console.log('收到 SSE 消息:', data);
+                
+                // 处理消息数据
+                if (Array.isArray(data)) {
+                    // 如果是数组，直接替换消息列表（初始加载，不显示提示）
+                    msgApiList.length = 0;
+                    msgApiList.push(...data);
+                    hasNewMessage.value = false;
+                } else if (data && data.data && Array.isArray(data.data)) {
+                    // 如果数据在 data 字段中（初始加载，不显示提示）
+                    msgApiList.length = 0;
+                    msgApiList.push(...data.data);
+                    hasNewMessage.value = false;
+                } else if (data && data.workspaceName) {
+                    // 如果是单条消息，添加到列表开头（新消息，显示提示）
+                    msgApiList.unshift(data);
+                    // 限制列表长度，避免过多消息
+                    if (msgApiList.length > 100) {
+                        msgApiList.pop();
+                    }
+                    // 显示新消息提示
+                    hasNewMessage.value = true;
+                }
+            } catch (error) {
+                console.error('解析 SSE 消息失败:', error);
+            }
+        };
+        
+        // 监听自定义事件（如果需要）
+        eventSource.addEventListener('notification', (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                console.log('收到 SSE 通知事件:', data);
+                if (data && data.workspaceName) {
+                    msgApiList.unshift(data);
+                    if (msgApiList.length > 100) {
+                        msgApiList.pop();
+                    }
+                    // 显示新消息提示
+                    hasNewMessage.value = true;
+                }
+            } catch (error) {
+                console.error('解析 SSE 通知事件失败:', error);
+            }
+        });
+        
+        // 监听连接打开
+        eventSource.onopen = () => {
+            console.log('SSE 连接已建立');
+        };
+        
+        // 监听错误
+        eventSource.onerror = (error) => {
+            console.error('SSE 连接错误:', error);
+            // EventSource 会自动重连，但如果连接被关闭（如 401），需要手动处理
+            if (eventSource && eventSource.readyState === EventSource.CLOSED) {
+                console.warn('SSE 连接已关闭，可能需要重新认证');
+            }
+        };
+    } catch (error) {
+        console.error('创建 SSE 连接失败:', error);
+    }
+};
+
+// 断开 SSE 连接
+const disconnectSSEMsg = () => {
+    if (eventSource) {
+        eventSource.close();
+        eventSource = null;
+        console.log('SSE 连接已断开');
+    }
+};
+
+// 格式化时间函数
+const formatDateTime = (dateTime) => {
+    if (!dateTime) {
+        return '';
+    }
+    
+    let date;
+    // 如果是时间戳（数字），转换为Date对象
+    if (typeof dateTime === 'number') {
+        // 判断是秒级时间戳还是毫秒级时间戳
+        date = new Date(dateTime > 1000000000000 ? dateTime : dateTime * 1000);
+    } else if (typeof dateTime === 'string') {
+        // 如果是字符串，尝试解析
+        // 处理常见的日期格式
+        if (dateTime.includes('T')) {
+            // ISO格式: 2025-12-11T17:22:23.000Z
+            date = new Date(dateTime);
+        } else if (dateTime.match(/^\d{4}-\d{2}-\d{2}/)) {
+            // 已经是 YYYY-MM-DD 格式，直接返回
+            return dateTime;
+        } else {
+            date = new Date(dateTime);
+        }
+    } else {
+        return String(dateTime);
+    }
+    
+    // 检查日期是否有效
+    if (isNaN(date.getTime())) {
+        // 如果无法解析，返回原始值
+        return String(dateTime);
+    }
+    
+    // 格式化为 YYYY-MM-DD HH:mm:ss
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+    
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+};
+
+// 处理消息下拉菜单显示状态变化
+const handleMsgDropdownVisibleChange = (visible) => {
+    // 当下拉菜单打开时，清除新消息提示
+    if (visible) {
+        hasNewMessage.value = false;
+    }
+};
+
+// 备用 HTTP 接口（用于初始加载或 SSE 失败时）
+const msgApi = () => {
+    msgList({}).then(res => {
+        console.log(res, 'HTTP 消息列表响应');
+        if (res && res.data && Array.isArray(res.data)) {
+            msgApiList.length = 0;
+            msgApiList.push(...res.data);
+            // 清除新消息提示（因为已经主动查看了）
+            hasNewMessage.value = false;
+        }
+    }).catch(err => {
+        console.error('获取消息列表失败:', err);
+    })
+};
 
 //  组件切换
 const component = ref(ReviewSpace);
@@ -210,6 +419,9 @@ const toggleUserMenu = () => {
 
 // 退出登录
 const handleLogout = () => {
+    // 断开 SSE 连接
+    disconnectSSEMsg();
+    
     localStorage.removeItem('token');
     localStorage.removeItem('userInfo');
     isLoggedIn.value = false;
@@ -219,12 +431,25 @@ const handleLogout = () => {
         username: ''
     };
     userMenuOpen.value = false;
+    // 清空消息列表
+    msgApiList.length = 0;
+    // 清除新消息提示
+    hasNewMessage.value = false;
     ElMessage.success('已退出登录');
 };
 
 // 初始化时检查登录状态
 onMounted(() => {
     checkLoginStatus();
+    
+    // 如果已登录，初始化 SSE 连接
+    if (isLoggedIn.value) {
+        initSSEMsg();
+    } else {
+        // 如果未登录，使用 HTTP 接口获取消息（如果有的话）
+        // msgApi();
+    }
+    
     // 点击外部关闭用户菜单
     document.addEventListener('click', (e) => {
         const target = e.target;
@@ -255,6 +480,8 @@ onMounted(() => {
 
 onUnmounted(() => {
     window.removeEventListener('resize', checkMobile);
+    // 组件卸载时断开 SSE 连接
+    disconnectSSEMsg();
 });
 
 // 移动端菜单控制
@@ -366,6 +593,10 @@ const loginButton = async () => {
                 localStorage.setItem('userInfo', JSON.stringify(userData));
                 userInfo.value = userData;
                 isLoggedIn.value = true;
+                
+                // 登录成功后初始化 SSE 连接
+                initSSEMsg();
+                
                 // 显示返回的提示语
                 const message = res?.message || res?.msg || res?.data?.message || '登录成功';
                 ElMessage.success(message);
@@ -451,6 +682,12 @@ const navigaJump = (event) => {
          case 'mySpace':
             component.value = mySpace
             activeMenu.value = 'mySpace'
+            break;
+        // 个人信息页
+        case 'userProfile':
+            component.value = userProfile
+            activeMenu.value = 'userProfile'
+            userMenuOpen.value = false
             break;
         default:
             break;
@@ -1183,6 +1420,121 @@ body {
             font-size: 14px;
             min-height: 44px;
         }
+    }
+}
+.example-showcase .el-dropdown-link {
+  cursor: pointer;
+  color: var(--el-color-primary);
+  display: flex;
+  align-items: center;
+}
+	
+.iconBox{
+	width: 44px;
+	height: 44px;
+	background: #E9EBFC;
+	display:flex;
+	justify-content: center;
+	align-items: center;
+    border-radius:50%;
+    margin-right:20px;
+    margin-top:-4px;
+    position: relative;
+    cursor: pointer;
+}
+.msg-img{
+	width: 20px;
+	height: 20px;
+}
+.msg-badge{
+	position: absolute;
+	top: 4px;
+	right: 4px;
+	width: 8px;
+	height: 8px;
+	background-color: #FF4444;
+	border-radius: 50%;
+	border: 1px solid #fff;
+	z-index: 10;
+	animation: pulse 2s infinite;
+}
+@keyframes pulse {
+	0% {
+		transform: scale(1);
+		opacity: 1;
+	}
+	50% {
+		transform: scale(1.2);
+		opacity: 0.8;
+	}
+	100% {
+		transform: scale(1);
+		opacity: 1;
+	}
+}
+.msg-dropdown-menu {
+    width: 400px !important;
+}
+
+.msg-item{
+    width: 400px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    box-sizing: border-box;
+    
+    .msg-item-img{
+        width:26px;
+        height:26px;
+        border-radius:50%;
+        margin-right:8px;
+        flex-shrink: 0;
+    }
+    .msg-text{
+        flex:1;
+        height: 20px;
+        font-family: PingFangSC, PingFang SC;
+        font-weight: 400;
+        font-size: 14px;
+        color: #85909C;
+        line-height: 20px;
+        text-align: left;
+        font-style: normal;
+        overflow:hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        margin-right: 12px;
+    }
+    .msg-time{
+        flex-shrink: 0;
+        height: 17px;
+        font-family: PingFangSC, PingFang SC;
+        font-weight: 400;
+        font-size: 12px;
+        color: #85909C;
+        line-height: 17px;
+        text-align: right;
+        font-style: normal;
+        white-space: nowrap;
+    }
+}
+
+.el-dropdown-menu__item:not(.is-disabled):hover{
+    background-color: #F7F8FA !important;
+    color: #85909C;
+    border-radius: 8px;
+}
+
+.msg-empty{
+    padding: 40px 20px;
+    text-align: center;
+    min-width: 200px;
+    
+    .msg-empty-text{
+        font-size: 14px;
+        color: #85909C;
+        line-height: 20px;
     }
 }
 </style>
