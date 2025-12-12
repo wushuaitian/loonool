@@ -124,3 +124,11 @@ export function tasksMembersinvite(data: RequestParams) {
         data,
     })
 }
+// 邀请成员进入工作空间
+export function tasksMembersinviteDelete(data: RequestParams) {
+    return request({
+        url: `/loonool/workspaces/${data.workspaceId}/${data.memberId}/delete`,
+        method: 'delete',
+        data,
+    })
+}
