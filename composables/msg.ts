@@ -15,3 +15,9 @@ export function msgList(data: RequestParams) {
     })
 }
 
+export function userInfo(data: RequestParams) {
+    return request({
+        url: `/loonool/user/info`,
+        method: 'get',
+    })
+}

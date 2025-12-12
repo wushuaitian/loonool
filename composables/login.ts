@@ -30,6 +30,17 @@ export function loonoolUserLogin(data: RequestParams) {
 }
 
 /**
+ * 获取用户信息
+ */
+export function loonoolUserInfo(data: RequestParams) {
+    return request({
+        url: '/loonool/user/info',
+        method: 'get',
+        params: data,
+    })
+}
+
+/**
  * 创建空间
  */
 
@@ -124,11 +135,10 @@ export function tasksMembersinvite(data: RequestParams) {
         data,
     })
 }
-// 邀请成员进入工作空间
+// 删除工作空间成员
 export function tasksMembersinviteDelete(data: RequestParams) {
     return request({
         url: `/loonool/workspaces/${data.workspaceId}/${data.memberId}/delete`,
         method: 'delete',
-        data,
     })
 }

@@ -108,8 +108,8 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { loonoolWorkspacesMyAll, loonoolWorkspacesMembers, tasksMembersinviteDelete } from "../../composables/login";
-import { ElMessage } from 'element-plus';
+import { loonoolWorkspacesMyAll, loonoolWorkspacesMembers, tasksMembersinviteDelete, loonoolUserInfo } from "../../composables/login";
+import { ElMessage, ElMessageBox } from 'element-plus';
 
 // 用户信息
 const userInfo = ref({
@@ -151,7 +151,6 @@ const getAllMembers = (spaceId) => {
 
 // 处理成员操作
 const handleMemberAction = async (command, spaceId) => {
-  console.log(spaceId)
   if (command.startsWith('remove-')) {
     const index = parseInt(command.split('-')[1]);
     const members = spaceMembersMap.value[spaceId] || [];
@@ -165,9 +164,21 @@ const handleMemberAction = async (command, spaceId) => {
       }
       
       try {
-        // 调用删除接口
+        // 显示确认对话框
+        await ElMessageBox.confirm(
+          `确定要移除 ${member.name || '成员'} 吗？`,
+          '提示',
+          {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning',
+          }
+        );
+        
+        // 用户点击确定后，调用删除接口
         const res = await tasksMembersinviteDelete({
-          memberId: member.userId,
+          userId: member.userId,
+          memberId: member.memberId || member.userId,
           workspaceId: spaceId
         });
         
@@ -180,6 +191,10 @@ const handleMemberAction = async (command, spaceId) => {
           ElMessage.error(res.message || '移除成员失败');
         }
       } catch (error) {
+        // 如果用户点击取消，error 会是 'cancel'，不需要处理
+        if (error === 'cancel' || error === 'close') {
+          return;
+        }
         console.error('移除成员失败', error);
         ElMessage.error(error?.response?.data?.message || error?.message || '移除成员失败，请稍后重试');
       }
@@ -188,113 +203,47 @@ const handleMemberAction = async (command, spaceId) => {
 };
 
 // 获取用户信息
-const loadUserInfo = () => {
-  const savedUserInfo = localStorage.getItem('userInfo');
-  if (savedUserInfo) {
-    try {
-      userInfo.value = JSON.parse(savedUserInfo);
-      // 生成用户ID（如果没有的话，使用邮箱的hash值）
-      if (!userInfo.value.id) {
-        // 简单生成一个ID（实际应该从API获取）
-        const email = userInfo.value.email || '';
-        userId.value = email ? String(email.split('@')[0].length * 888832088) : '888832088';
-      } else {
-        userId.value = userInfo.value.id;
+const loadUserInfo = async () => {
+  try {
+    const res = await loonoolUserInfo({});
+    if (res.code === 200 && res.data) {
+      userInfo.value = {
+        email: res.data.email || '',
+        avatar: res.data.avatar || '',
+        username: res.data.username || res.data.name || res.data.email || ''
+      };
+      userId.value = res.data.id || res.data.userId || '';
+    } else {
+      // 如果接口失败，尝试从 localStorage 获取
+      const savedUserInfo = localStorage.getItem('userInfo');
+      if (savedUserInfo) {
+        try {
+          const parsedInfo = JSON.parse(savedUserInfo);
+          userInfo.value = parsedInfo;
+          userId.value = parsedInfo.id || '';
+        } catch (e) {
+          console.error('解析用户信息失败', e);
+        }
       }
-    } catch (e) {
-      console.error('解析用户信息失败', e);
-      userId.value = '888832088';
     }
-  } else {
-    userId.value = '888832088';
+  } catch (error) {
+    console.error('获取用户信息失败', error);
+    // 接口失败时，尝试从 localStorage 获取
+    const savedUserInfo = localStorage.getItem('userInfo');
+    if (savedUserInfo) {
+      try {
+        const parsedInfo = JSON.parse(savedUserInfo);
+        userInfo.value = parsedInfo;
+        userId.value = parsedInfo.id || '';
+      } catch (e) {
+        console.error('解析用户信息失败', e);
+      }
+    }
   }
 };
 
-// 模拟数据
-const mockSpaces = [
-  {
-    id: '234999887',
-    name: '空间名称空间名称空间名称空间名称空间名称'
-  },
-  {
-    id: '234999888',
-    name: '产品设计空间'
-  },
-  {
-    id: '234999889',
-    name: '开发团队协作空间'
-  },
-  {
-    id: '234999890',
-    name: '市场营销决策空间'
-  },
-  {
-    id: '234999891',
-    name: '用户体验研究空间'
-  },
-  {
-    id: '234999892',
-    name: '数据分析空间'
-  },
-  {
-    id: '234999893',
-    name: '项目管理空间'
-  },
-  {
-    id: '234999894',
-    name: '创意设计工作空间'
-  },
-  {
-    id: '234999895',
-    name: '技术研发空间'
-  },
-  {
-    id: '234999896',
-    name: '客户服务空间'
-  }
-];
-
-// 模拟成员数据
-const mockMembers = [
-  {
-    avatar: 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png',
-    name: '成员1',
-    userId: 'mock-user-1',
-    memberId: 'mock-member-1'
-  },
-  {
-    avatar: 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png',
-    name: '成员2',
-    userId: 'mock-user-2',
-    memberId: 'mock-member-2'
-  },
-  {
-    avatar: 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png',
-    name: '成员3',
-    userId: 'mock-user-3',
-    memberId: 'mock-member-3'
-  },
-  {
-    avatar: 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png',
-    name: '成员4',
-    userId: 'mock-user-4',
-    memberId: 'mock-member-4'
-  },
-  {
-    avatar: 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png',
-    name: '成员5',
-    userId: 'mock-user-5',
-    memberId: 'mock-member-5'
-  }
-];
-
 // 获取所有空间
 const getAllSpaces = async () => {
-   spacesList.value = [...mockSpaces];
-      // 为每个模拟空间添加模拟成员
-      mockSpaces.forEach(space => {
-        spaceMembersMap.value[space.id] = [...mockMembers];
-      });
   try {
     const res = await loonoolWorkspacesMyAll({});
     if (res.code === 200 && res.data && res.data.length > 0) {
@@ -304,22 +253,11 @@ const getAllSpaces = async () => {
         await loadSpaceMembers(space.id);
       }
     } else {
-      // 如果 API 返回空数据，使用模拟数据
-      console.log('API返回空数据，使用模拟空间数据');
-      spacesList.value = [...mockSpaces];
-      // 为每个模拟空间添加模拟成员
-      mockSpaces.forEach(space => {
-        spaceMembersMap.value[space.id] = [...mockMembers];
-      });
+      spacesList.value = [];
     }
   } catch (error) {
-    console.error('获取空间列表失败，使用模拟数据', error);
-    // API 调用失败时使用模拟数据
-    spacesList.value = [...mockSpaces];
-    // 为每个模拟空间添加模拟成员
-    mockSpaces.forEach(space => {
-      spaceMembersMap.value[space.id] = [...mockMembers];
-    });
+    console.error('获取空间列表失败', error);
+    spacesList.value = [];
   }
 };
 
@@ -335,14 +273,11 @@ const loadSpaceMembers = async (spaceId) => {
         memberId: member.memberId || member.id || ''
       }));
     } else {
-      // API 返回空数据时，使用模拟成员数据
-      console.log(`API返回空间 ${spaceId} 成员空数据，使用模拟成员数据`);
-      spaceMembersMap.value[spaceId] = [...mockMembers];
+      spaceMembersMap.value[spaceId] = [];
     }
   } catch (error) {
-    console.error(`获取空间 ${spaceId} 成员失败，使用模拟数据`, error);
-    // API 调用失败时，使用模拟成员数据
-    spaceMembersMap.value[spaceId] = [...mockMembers];
+    console.error(`获取空间 ${spaceId} 成员失败`, error);
+    spaceMembersMap.value[spaceId] = [];
   }
 };
 
