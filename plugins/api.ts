@@ -1,9 +1,9 @@
 
 import axios from 'axios';
-
+export const baseUrl = 'http://192.168.1.198:8080/';// 根据实际情况修改API地址
 // 基本配置
 const instance = axios.create({
-  baseURL: 'http://192.168.1.198:8080/', // 根据实际情况修改API地址
+  baseURL: baseUrl, 
   timeout: 50000000 // 设置超时时间，单位为ms
 });
 

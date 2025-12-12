@@ -21,3 +21,11 @@ export function userInfo(data: RequestParams) {
         method: 'get',
     })
 }
+
+export function userUpdate(data: RequestParams) {
+    return request({
+        url: `/loonool/user/profile`,
+        method: 'put',
+        data,
+    })
+}

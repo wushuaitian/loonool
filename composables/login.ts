@@ -138,7 +138,7 @@ export function tasksMembersinvite(data: RequestParams) {
 // 删除工作空间成员
 export function tasksMembersinviteDelete(data: RequestParams) {
     return request({
-        url: `/loonool/workspaces/${data.workspaceId}/${data.memberId}/delete`,
+        url: `/loonool/workspaces/${data.workspaceId}/${data.userId}/delete`,
         method: 'delete',
     })
 }

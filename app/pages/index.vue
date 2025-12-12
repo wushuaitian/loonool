@@ -56,7 +56,7 @@
                             
 
                             <el-dropdown-item v-else class="msg-item" v-for="(item,index) in msgApiList" :key="index">
-                                    <img src="/img/msg.png" alt="" class="msg-item-img">
+                                    <img :src="item.avatar || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'" alt="" class="msg-item-img">
                                     <div class="msg-text">{{item.workspaceName}}</div>
                                     <div class="msg-time">{{formatDateTime(item.createdAt)}}</div>
                              </el-dropdown-item>
@@ -198,6 +198,7 @@ import {
 import {
     msgList
 } from "../../composables/msg.ts";
+import { baseUrl } from "../../plugins/api.ts";
 import { ElMessage } from 'element-plus';
 //消息列表
 const msgApiList = reactive([]);
@@ -222,8 +223,8 @@ const initSSEMsg = () => {
         eventSource = null;
     }
 
-    // SSE 服务器地址（根据实际情况修改）
-    const sseUrl = 'http://192.168.0.77:8080/loonool/notifications/stream';
+    // SSE 服务器地址（使用 api.ts 中的 baseUrl）
+    const sseUrl = `${baseUrl}loonool/notifications/stream`;
     
     try {
         // 创建 EventSource 连接

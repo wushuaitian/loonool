@@ -5,7 +5,7 @@
     <div class="profile-card">
       <div class="profile-header">
         <div class="profile-avatar" @click="isEditing && handleAvatarEdit()">
-          <img :src="userInfo.avatar || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'" 
+          <img :src="userInfo.avatarUrl || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'" 
                alt="用户头像" 
                class="avatar-img">
           <div v-if="isEditing" class="avatar-overlay">
@@ -31,15 +31,7 @@
             </div>
             <div class="detail-item">
               <img src="/img/passwordIcon.png" alt="密码" class="detail-icon-img">
-              <span v-if="!isEditing" class="detail-value password-mask">••••••</span>
-              <el-input 
-                v-else
-                v-model="editForm.password"
-                type="password"
-                class="detail-input"
-                placeholder="请输入密码"
-                show-password
-              />
+              <span class="detail-value password-mask">••••••</span>
             </div>
           </div>
         </div>
@@ -109,14 +101,17 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import { loonoolWorkspacesMyAll, loonoolWorkspacesMembers, tasksMembersinviteDelete, loonoolUserInfo } from "../../composables/login";
+import { userUpdate } from "../../composables/msg";
 import { ElMessage, ElMessageBox } from 'element-plus';
-
 // 用户信息
 const userInfo = ref({
   email: '',
   avatar: '',
   username: ''
 });
+
+// 完整的用户数据（从接口获取）
+const userData = ref({});
 
 // 用户ID - 从localStorage或生成
 const userId = ref('');
@@ -127,8 +122,7 @@ const isEditing = ref(false);
 // 编辑表单数据
 const editForm = ref({
   username: '',
-  email: '',
-  password: ''
+  email: ''
 });
 
 // 空间列表
@@ -163,6 +157,12 @@ const handleMemberAction = async (command, spaceId) => {
         return;
       }
       
+      // 校验：不能移除自己
+      if (member.userId === userId.value || member.userId === String(userId.value)) {
+        ElMessage.warning('不能移除自己');
+        return;
+      }
+      
       try {
         // 显示确认对话框
         await ElMessageBox.confirm(
@@ -177,8 +177,7 @@ const handleMemberAction = async (command, spaceId) => {
         
         // 用户点击确定后，调用删除接口
         const res = await tasksMembersinviteDelete({
-          userId: member.userId,
-          memberId: member.memberId || member.userId,
+          userId: String(member.userId),
           workspaceId: spaceId
         });
         
@@ -207,9 +206,12 @@ const loadUserInfo = async () => {
   try {
     const res = await loonoolUserInfo({});
     if (res.code === 200 && res.data) {
+      // 保存完整的用户数据
+      userData.value = { ...res.data };
+      
       userInfo.value = {
         email: res.data.email || '',
-        avatar: res.data.avatar || '',
+        avatar: res.data.avatar || res.data.avatarUrl || '',
         username: res.data.username || res.data.name || res.data.email || ''
       };
       userId.value = res.data.id || res.data.userId || '';
@@ -219,6 +221,7 @@ const loadUserInfo = async () => {
       if (savedUserInfo) {
         try {
           const parsedInfo = JSON.parse(savedUserInfo);
+          userData.value = { ...parsedInfo };
           userInfo.value = parsedInfo;
           userId.value = parsedInfo.id || '';
         } catch (e) {
@@ -233,6 +236,7 @@ const loadUserInfo = async () => {
     if (savedUserInfo) {
       try {
         const parsedInfo = JSON.parse(savedUserInfo);
+        userData.value = { ...parsedInfo };
         userInfo.value = parsedInfo;
         userId.value = parsedInfo.id || '';
       } catch (e) {
@@ -282,24 +286,55 @@ const loadSpaceMembers = async (spaceId) => {
 };
 
 // 编辑按钮点击事件
-const handleEdit = () => {
+const handleEdit = async () => {
   if (isEditing.value) {
     // 保存逻辑
-    console.log('保存个人信息', editForm.value);
-    // TODO: 调用API保存数据
-    userInfo.value.username = editForm.value.username || userInfo.value.username;
-    userInfo.value.email = editForm.value.email || userInfo.value.email;
-    if (editForm.value.password) {
-      // TODO: 更新密码
-      console.log('更新密码');
+    try {
+      // 从接口获取的完整数据作为基础
+      const updateData = { ...userData.value };
+      
+      // 排除 updatedAt 字段
+      delete updateData.updatedAt;
+      delete updateData.phone;
+      delete updateData.passwordHash;
+      
+      // 更新编辑的字段
+      if (editForm.value.username) {
+        updateData.name = editForm.value.username;
+      }
+      
+      if (userInfo.value.avatar) {
+        updateData.avatarUrl = 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png';
+      }
+      
+     
+      
+      // 调用API保存数据
+      const res = await userUpdate(updateData);
+      
+      if (res.code === 200 || res.status === 200) {
+        // 更新成功，刷新用户信息
+        userInfo.value.username = editForm.value.username || userInfo.value.username;
+        if (res.data) {
+          userInfo.value.avatar = res.data.avatar || res.data.avatarUrl || userInfo.value.avatar;
+          userInfo.value.username = res.data.username || res.data.name || userInfo.value.username;
+        }
+        ElMessage.success('保存成功');
+        isEditing.value = false;
+        // 重新加载用户信息
+        await loadUserInfo();
+      } else {
+        ElMessage.error(res.message || '保存失败');
+      }
+    } catch (error) {
+      console.error('保存用户信息失败', error);
+      ElMessage.error(error?.response?.data?.message || error?.message || '保存失败，请稍后重试');
     }
-    isEditing.value = false;
   } else {
     // 进入编辑模式
     editForm.value = {
       username: userInfo.value.username || userInfo.value.email || '',
-      email: userInfo.value.email || '',
-      password: ''
+      email: userInfo.value.email || ''
     };
     isEditing.value = true;
   }
@@ -386,7 +421,7 @@ $border-color: #E5E7EB;
     
     .avatar-edit-text {
       color: #FFFFFF;
-      font-size: 16px;
+      font-size: 14px;
       font-weight: 500;
     }
   }
@@ -401,7 +436,7 @@ $border-color: #E5E7EB;
   height: 40px;
   font-family: PingFangSC, PingFang SC;
   font-weight: 500;
-  font-size: 28px;
+  font-size: 26px;
   color: #1D2129;
   line-height: 40px;
   text-align: left;
@@ -429,7 +464,7 @@ $border-color: #E5E7EB;
     .el-input__inner {
       font-family: PingFangSC, PingFang SC;
       font-weight: 500;
-      font-size: 28px;
+      font-size: 26px;
       color: #1D2129;
       line-height: 54px;
       background: transparent;
@@ -452,7 +487,7 @@ $border-color: #E5E7EB;
   gap: 8px;
   font-family: PingFangSC, PingFang SC;
   font-weight: 400;
-  font-size: 16px;
+  font-size: 14px;
   color: #4E5969;
   line-height: 22px;
   text-align: left;
@@ -463,7 +498,7 @@ $border-color: #E5E7EB;
 .detail-label {
   font-family: PingFangSC, PingFang SC;
   font-weight: 400;
-  font-size: 16px;
+  font-size: 14px;
   color: #4E5969;
   line-height: 22px;
   text-align: left;
@@ -479,7 +514,7 @@ $border-color: #E5E7EB;
 .detail-value {
   font-family: PingFangSC, PingFang SC;
   font-weight: 400;
-  font-size: 16px;
+  font-size: 14px;
   color: #4E5969;
   line-height: 22px;
   text-align: left;
@@ -511,7 +546,7 @@ $border-color: #E5E7EB;
     .el-input__inner {
       font-family: PingFangSC, PingFang SC;
       font-weight: 400;
-      font-size: 16px;
+      font-size: 14px;
       color: #4E5969;
       line-height: 22px;
       background: transparent;
@@ -542,7 +577,7 @@ $border-color: #E5E7EB;
   // 按钮文字样式
   font-family: PingFangSC, PingFang SC;
   font-weight: 400;
-  font-size: 16px;
+  font-size: 14px;
   color: #4E5969;
   line-height: 22px;
   text-align: left;
@@ -577,7 +612,7 @@ $border-color: #E5E7EB;
     height: 28px;
     font-family: PingFangSC, PingFang SC;
     font-weight: 500;
-    font-size: 20px;
+    font-size: 18px;
     color: #4E5969;
     line-height: 28px;
     text-align: left;
@@ -622,7 +657,7 @@ $border-color: #E5E7EB;
     flex: 1;
     margin-left: 60px;
     min-width: 200px;
-    font-size: 16px;
+    font-size: 14px;
     font-weight: 500;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -633,7 +668,7 @@ $border-color: #E5E7EB;
     flex: 0 0 488px;
 font-family: PingFangSC, PingFang SC;
 font-weight: 400;
-font-size: 16px;
+font-size: 14px;
 line-height: 22px;
 text-align: left;
 font-style: normal;
@@ -702,7 +737,7 @@ font-style: normal;
       margin-right: 8px;
       font-family: PingFangSC, PingFang SC;
       font-weight: 500;
-      font-size: 14px;
+      font-size: 12px;
       color: #4E5969;
       line-height: 20px;
       text-align: left;
@@ -717,7 +752,7 @@ font-style: normal;
       height: 20px;
       font-family: PingFangSC, PingFang SC;
       font-weight: 400;
-      font-size: 14px;
+      font-size: 12px;
       color: #4E5969;
       line-height: 20px;
       text-align: left;
@@ -740,7 +775,7 @@ font-style: normal;
   padding: 60px 20px;
   text-align: center;
   color: $color-text-light;
-  font-size: 16px;
+  font-size: 14px;
 }
 
 // 响应式设计
@@ -774,12 +809,12 @@ font-style: normal;
   }
   
   .profile-name {
-    font-size: 24px;
+    font-size: 22px;
   }
   
   .spaces-list-header {
     .header-item {
-      font-size: 16px;
+      font-size: 14px;
     }
   }
   
@@ -789,12 +824,12 @@ font-style: normal;
     
     .list-item-name {
       min-width: 100px;
-      font-size: 14px;
+      font-size: 12px;
     }
     
     .list-item-id {
       flex: 0 0 120px;
-      font-size: 14px;
+      font-size: 12px;
     }
     
     .list-item-members {
