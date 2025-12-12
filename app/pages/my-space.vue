@@ -53,7 +53,7 @@ const getAllSpaces = async () => {
 
 const spacesDetailsClick = (space) => {
   emit('spaceCreated', space.id)
-   localStorage.setItem(workspaceId, space.id);
+   localStorage.setItem('workspaceId', space.id);
 }
 // 初始化分页配置（每页显示16个，4x4网格）
 const pageOption = ref(pageModelFn({

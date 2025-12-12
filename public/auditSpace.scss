@@ -135,6 +135,11 @@ $bg-incomplete: #F8D9DB;
       border: 1px solid $color-primary;
     }
 
+    .task-status-wrapper {
+      position: relative;
+      display: inline-block;
+    }
+
     .task-item-status {
       display: inline-flex;
       align-items: center;
@@ -144,6 +149,12 @@ $bg-incomplete: #F8D9DB;
       font-size: 13px;
       font-weight: 400;
       white-space: nowrap;
+      cursor: pointer;
+      transition: all 0.2s;
+
+      &:hover {
+        opacity: 0.8;
+      }
 
       .status-dot {
         width: 4px;
@@ -180,6 +191,61 @@ $bg-incomplete: #F8D9DB;
 
         .status-dot {
           background-color: $color-incomplete;
+        }
+      }
+    }
+
+    .status-dropdown-menu {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      margin-top: 4px;
+      background: $bg-white;
+      border: 1px solid $bg-gray-lightest;
+      border-radius: 6px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      z-index: 100;
+      min-width: 120px;
+      overflow: hidden;
+
+      .status-dropdown-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        font-size: 13px;
+        color: $color-text-gray;
+        cursor: pointer;
+        transition: all 0.2s;
+
+        &:hover {
+          background-color: $bg-gray-light;
+          color: $color-primary;
+        }
+
+        &.status-dropdown-item-active {
+          background-color: $bg-blue-light;
+          color: $color-primary;
+          font-weight: 500;
+        }
+
+        .status-dropdown-dot {
+          width: 4px;
+          height: 4px;
+          border-radius: 50%;
+          display: inline-block;
+
+          &.status-dot-processing {
+            background-color: $color-progress;
+          }
+
+          &.status-dot-pending {
+            background-color: $color-incomplete;
+          }
+
+          &.status-dot-completed {
+            background-color: $color-completed;
+          }
         }
       }
     }
@@ -967,6 +1033,15 @@ $bg-incomplete: #F8D9DB;
       gap: 6px;
       cursor: pointer;
       user-select: none;
+
+      &.role-select-disabled {
+        cursor: not-allowed;
+        opacity: 0.6;
+        
+        .role-text {
+          color: $color-text-gray;
+        }
+      }
 
       .role-dropdown-menu {
         position: absolute;

@@ -77,6 +77,16 @@ export function loonoolWorkspacesTasks(data: RequestParams) {
     })
 }
 
+// 修改任务状态
+export function loonoolTasksStatus(data: RequestParams) {
+    return request({
+        url: `/loonool/workspaces/tasks/${data.workspaceId}/${data.taskId}/status`,
+        method: 'post',
+        data,
+    })
+}
+
+
 // 获取任务详情
 export function tasksgetTaskDetail(data: RequestParams) {
     return request({
@@ -140,5 +150,14 @@ export function tasksMembersinviteDelete(data: RequestParams) {
     return request({
         url: `/loonool/workspaces/${data.workspaceId}/${data.userId}/delete`,
         method: 'delete',
+    })
+}
+
+// 修改空间成员权限
+export function tasksMembersChangerRole(data: RequestParams) {
+    return request({
+        url: `/loonool/workspaces/${data.workspaceId}/${data.memberId}/change-role`,
+        method: 'post',
+        data,
     })
 }

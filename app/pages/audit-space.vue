@@ -28,9 +28,31 @@
               <div class="text-14 m-l-10 text-bold-500">{{ item.title }} </div>
             </div>
             <div class="task-item-content">
-              <div class="task-item-status m-l-10" :class="getStatusClass(item.status)">
-                <span class="status-dot"></span>
-                <span class="status-text">{{ getStatusText(item.status) }}</span>
+              <div class="task-status-wrapper" @click.stop="toggleStatusDropdown(index)">
+                <div class="task-item-status m-l-10" :class="getStatusClass(item.status)">
+                  <span class="status-dot"></span>
+                  <span class="status-text">{{ getStatusText(item.status) }}</span>
+                </div>
+                <div v-if="activeStatusDropdownIndex === index" class="status-dropdown-menu" @click.stop>
+                  <div class="status-dropdown-item"
+                    :class="{ 'status-dropdown-item-active': item.status === 'rocessing' }"
+                    @click="updateTaskStatus(index, 'processing')">
+                    <span class="status-dropdown-dot status-dot-processing"></span>
+                    <span>进行中</span>
+                  </div>
+                  <div class="status-dropdown-item"
+                    :class="{ 'status-dropdown-item-active': item.status === 'pending' }"
+                    @click="updateTaskStatus(index, 'pending')">
+                    <span class="status-dropdown-dot status-dot-pending"></span>
+                    <span>未完成</span>
+                  </div>
+                  <div class="status-dropdown-item"
+                    :class="{ 'status-dropdown-item-active': item.status === 'completed' }"
+                    @click="updateTaskStatus(index, 'completed')">
+                    <span class="status-dropdown-dot status-dot-completed"></span>
+                    <span>已完成</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -224,10 +246,12 @@
                 </div>
                 <div class="table-col-email">{{ member.email }}</div>
                 <div class="table-col-role">
-                  <div class="role-select-wrapper" @click.stop="toggleRoleDropdown(index)">
+                  <div class="role-select-wrapper" :class="{ 'role-select-disabled': isOwnerRole(member.role) }"
+                    @click.stop="!isOwnerRole(member.role) && toggleRoleDropdown(index)">
                     <span class="role-text">{{ getRoleDisplayName(member.role) }}</span>
-                    <span class="role-dropdown-icon">▼</span>
-                    <div v-if="activeRoleDropdownIndex === index" class="role-dropdown-menu" @click.stop>
+                    <span v-if="!isOwnerRole(member.role)" class="role-dropdown-icon">▼</span>
+                    <div v-if="activeRoleDropdownIndex === index && !isOwnerRole(member.role)"
+                      class="role-dropdown-menu" @click.stop>
                       <div class="role-dropdown-item"
                         :class="{ 'role-dropdown-item-active': member.role === 'admin' || member.role === '项目管理人' }"
                         @click="updateMemberRole(index, 'admin')">
@@ -262,7 +286,7 @@
 
 <script setup>
 import { ElMessage } from 'element-plus'
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
 import {
   loonoolUploadImage,
   loonoolWorkspacesTasks,
@@ -270,7 +294,10 @@ import {
   tasksgetTaskDetail,
   taskscreateTaskComment,
   loonoolWorkspacesMembers,
-  tasksMembersinvite
+  tasksMembersinvite,
+  // 修改任务状态
+  loonoolTasksStatus,
+  tasksMembersChangerRole
 } from "../../composables/login";
 
 // 定义 props 接收 spaceId
@@ -324,16 +351,16 @@ const getTaskList = async () => {
 const taskList = ref([])
 
 // 获取状态样式类
-// status-progress -> pending (待处理)
-// status-completed -> processing (处理中)
-// status-incomplete -> completed (已完成)
+// status-progress -> processing (进行中) - 黄色背景
+// status-incomplete -> pending (未完成) - 红色背景
+// status-completed -> completed (已完成) - 绿色背景
 const getStatusClass = (status) => {
-  if (status === 'pending') {
+  if (status === 'processing') {
     return 'status-progress'
-  } else if (status === 'processing') {
-    return 'status-completed'
-  } else if (status === 'completed') {
+  } else if (status === 'pending') {
     return 'status-incomplete'
+  } else if (status === 'completed') {
+    return 'status-completed'
   } else {
     // 兼容旧数据，默认返回 status-progress
     return 'status-progress'
@@ -342,15 +369,15 @@ const getStatusClass = (status) => {
 
 // 获取状态中文文本
 const getStatusText = (status) => {
-  if (status === 'pending') {
-    return '待处理'
-  } else if (status === 'processing') {
-    return '处理中'
+  if (status === 'processing') {
+    return '进行中'
+  } else if (status === 'pending') {
+    return '未完成'
   } else if (status === 'completed') {
     return '已完成'
   } else {
-    // 兼容旧数据，默认返回待处理
-    return '待处理'
+    // 兼容旧数据，默认返回进行中
+    return '进行中'
   }
 }
 
@@ -358,6 +385,8 @@ const getStatusText = (status) => {
 const taskCurrentId = ref(null)
 // 当前选中的任务对象
 const currentTask = ref(null)
+// 当前打开状态下拉菜单的任务索引
+const activeStatusDropdownIndex = ref(null)
 
 const taskItemClick = async (item, index) => {
   taskCurrentId.value = index
@@ -365,6 +394,35 @@ const taskItemClick = async (item, index) => {
   // 切换任务时重新获取评论和证据链
   await getCommentList()
   // await getEvidenceList()
+  // 关闭状态下拉菜单
+  activeStatusDropdownIndex.value = null
+}
+
+// 切换状态下拉菜单
+const toggleStatusDropdown = (index) => {
+  // loonoolTasksStatus
+  if (activeStatusDropdownIndex.value === index) {
+    activeStatusDropdownIndex.value = null
+  } else {
+    activeStatusDropdownIndex.value = index
+  }
+}
+
+// 更新任务状态
+const updateTaskStatus = (index, newStatus) => {
+  if (taskList.value[index]) {
+    // taskList.value[index].status = newStatus
+    activeStatusDropdownIndex.value = null
+    loonoolTasksStatus({
+      taskId: taskList.value[index].taskId,
+      status: newStatus,
+      workspaceId: workspaceId.value
+    }).then(res => {
+      getTaskList()
+    })
+    // TODO: 调用API更新任务状态
+    // ElMessage.success('状态已更新')
+  }
 }
 
 
@@ -689,8 +747,17 @@ const getSpaceMembers = async () => {
 
 }
 
+// 判断是否为owner角色（创建者）
+const isOwnerRole = (role) => {
+  return role === 'owner' || role === '创建者'
+}
+
 // 切换角色下拉菜单
 const toggleRoleDropdown = (index) => {
+  // 如果是owner角色，不允许打开下拉菜单
+  if (membersList.value[index] && isOwnerRole(membersList.value[index].role)) {
+    return
+  }
   if (activeRoleDropdownIndex.value === index) {
     activeRoleDropdownIndex.value = null
   } else {
@@ -701,7 +768,9 @@ const toggleRoleDropdown = (index) => {
 
 // 获取角色显示名称
 const getRoleDisplayName = (role) => {
-  if (role === 'admin' || role === '项目管理人') {
+  if (role === 'owner' || role === '创建者') {
+    return '创建者'
+  } else if (role === 'admin' || role === '项目管理人') {
     return '项目管理人员'
   } else if (role === 'member' || role === '发言人') {
     return '发言人'
@@ -711,10 +780,26 @@ const getRoleDisplayName = (role) => {
 
 // 更新成员角色
 const updateMemberRole = (index, newRole) => {
-  membersList.value[index].role = newRole
+  // 如果是owner角色，不允许更新
+  if (membersList.value[index] && isOwnerRole(membersList.value[index].role)) {
+    return
+  }
+
+  console.log(membersList.value[index], 'membersList.value[index]');
+
+  // membersList.value[index].role = newRole
   activeRoleDropdownIndex.value = null
   // TODO: 调用API更新角色
-  ElMessage.success('角色已更新')
+  tasksMembersChangerRole({
+    memberId: String(membersList.value[index].userId),
+    newRole: newRole,
+    workspaceId: workspaceId.value
+  }).then(res => {
+    if (res.code === 200) {
+      getTaskList()
+      ElMessage.success('更新成功')
+    }
+  })
 }
 
 // 打开邀请好友弹窗
@@ -773,6 +858,16 @@ const handleInvite = () => {
 // 空间ID
 const workspaceId = ref(null)
 
+// 点击外部关闭状态下拉菜单
+const handleClickOutside = (event) => {
+  if (activeStatusDropdownIndex.value !== null) {
+    const target = event.target
+    if (!target.closest('.task-status-wrapper')) {
+      activeStatusDropdownIndex.value = null
+    }
+  }
+}
+
 onMounted(async () => {
   if (props.spaceId) {
     console.log('接收到的 spaceId:', props.spaceId)
@@ -783,6 +878,13 @@ onMounted(async () => {
     await getSpaceMembers()
     console.log('任务列表加载完成')
   }
+  // 添加全局点击事件监听
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  // 移除全局点击事件监听
+  document.removeEventListener('click', handleClickOutside)
 })
 
 // 监听 spaceId 变化
