@@ -153,10 +153,18 @@ export function tasksMembersinviteDelete(data: RequestParams) {
     })
 }
 
-// 修改空间成员权限
-export function tasksMembersChangerRole(data: RequestParams) {
+// 旧修改空间成员权限
+export function tasksMembersChangerRole2(data: RequestParams) {
     return request({
         url: `/loonool/workspaces/${data.workspaceId}/${data.memberId}/change-role`,
+        method: 'post',
+        data,
+    })
+}
+// 新修改空间成员权限
+export function tasksMembersChangerRole(data: RequestParams) {
+    return request({
+        url: `/loonool/workspaces/workspaces/change-role`,
         method: 'post',
         data,
     })

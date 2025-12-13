@@ -57,7 +57,7 @@
 
                             <el-dropdown-item v-else class="msg-item" v-for="(item,index) in msgApiList" :key="index">
                                     <img :src="item.avatar || 'https://cube.elemecdn.com/3/7c/3ea6beec64369c2642b92c6726f1epng.png'" alt="" class="msg-item-img">
-                                    <div class="msg-text">{{item.workspaceName}}</div>
+                                    <div class="msg-text">{{item.message}}</div>
                                     <div class="msg-time">{{formatDateTime(item.createdAt)}}</div>
                              </el-dropdown-item>
                             
